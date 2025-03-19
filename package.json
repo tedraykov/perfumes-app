@@ -11,12 +11,14 @@
 		"format": "prettier --write .",
 		"lint": "prettier --check . && eslint .",
 		"test:unit": "vitest",
-		"test": "npm run test:unit -- --run"
+		"test": "npm run test:unit -- --run",
+		"codegen:appwrite": "fetch-appwrite-types includeDBName outDir ./src/lib/server/appwrite outFileName codegen hardTypes"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-auto": "^3.0.0",
 		"@sveltejs/kit": "^2.0.0",
 		"@sveltejs/vite-plugin-svelte": "^4.0.0",
+		"@types/cheerio": "^0.22.35",
 		"autoprefixer": "^10.4.20",
 		"bits-ui": "^0.21.16",
 		"clsx": "^2.1.1",
@@ -43,6 +45,7 @@
 		"@tailwindcss/forms": "^0.5.9",
 		"@tailwindcss/typography": "^0.5.15",
 		"appwrite": "14.0.1",
+		"cheerio": "^1.0.0",
 		"fetch-appwrite-types": "^2.2.2",
 		"node-appwrite": "^14.1.0"
 	}

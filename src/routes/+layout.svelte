@@ -1,7 +1,15 @@
 <script>
+	import Navbar from '$lib/components/Navbar.svelte';
 	import '../app.css';
-	let { children } = $props();
+	/** @typedef {import('./$types').LayoutData} LayoutData */
+
+	/**
+	 * @type {{ data: LayoutData, children: any }}
+	 */
+	let { children, data } = $props();
 </script>
 
-<nav class="h-12"></nav>
-{@render children()}
+<Navbar user={data.user} />
+<main class="container py-8">
+	{@render children()}
+</main>

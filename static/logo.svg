@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <!-- Circle outline for perfume bottle -->
+  <circle cx="100" cy="100" r="60" stroke="#FFC0CB" stroke-width="3" fill="none" />
+
+  <!-- Heart inside the bottle -->
+  <path d="M100 115 C90 95, 70 95, 70 105 C70 125, 100 140, 100 140 C100 140, 130 125, 130 105 C130 95, 110 95, 100 115 Z"
+        fill="#FFC0CB" />
+
+  <!-- Bottle cap -->
+  <rect x="85" y="45" width="30" height="10" rx="3" fill="#FFC0CB" />
+
+  <!-- Text below -->
+  <text x="50%" y="180" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="#333">
+    Perfume Marketplace
+  </text>
+</svg>
+
