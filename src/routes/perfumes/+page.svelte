@@ -1,82 +1,95 @@
-<script>
-	import { Input } from '$lib/components/ui/input';
-	import { Button } from '$lib/components/ui/button';
-	import { Checkbox } from '$lib/components/ui/checkbox';
-	import { Label } from '$lib/components/ui/label';
+<script lang="ts">
 	import {
 		Card,
 		CardContent,
 		CardDescription,
-		CardFooter,
 		CardHeader,
 		CardTitle
 	} from '$lib/components/ui/card';
+	import type { PageProps } from './$types';
+	import BestPriceList from './best-price-list.svelte';
+	import { Input } from '$lib/components/ui/input';
+	import { goto } from '$app/navigation';
+	import Filter from '$lib/components/filter.svelte';
+	import AppliedFilters from '$lib/components/applied-filters.svelte';
+	import Pagination from './pagination.svelte';
 
-	/** @typedef {import('./$types').PageData} PageData */
-	let { data } = $props();
-	let perfumes = data.perfumes;
+	let { data }: PageProps = $props();
 
-	/** @type {string[]} */
-	let brands = [];
-	let searchQuery = '';
-	/** @type {Set<string>} */
-	let selectedBrands = new Set();
+	let selectedHouses = $derived(data.selectedHouses);
+	let selectedGender = $derived(data.selectedGender);
 
-	/**
-	 * @param {string} brand
-	 */
-	function toggleBrand(brand) {
-		if (selectedBrands.has(brand)) {
-			selectedBrands.delete(brand);
-		} else {
-			selectedBrands.add(brand);
+	let query = $state(data.query);
+	let timeout: NodeJS.Timeout;
+
+	function handleSearch() {
+		if (timeout) clearTimeout(timeout);
+
+		timeout = setTimeout(search, 300);
+	}
+
+	function search() {
+		const params = new URLSearchParams();
+		if (query) {
+			params.set('query', query);
 		}
-		selectedBrands = selectedBrands; // trigger reactivity
+		if (selectedHouses && selectedHouses.length > 0) {
+			params.set('houses', selectedHouses.join(','));
+		}
+
+		if (selectedGender && selectedGender.length > 0) {
+			params.set('gender', selectedGender.join(','));
+		}
+
+		goto(`?${params.toString()}`, { keepFocus: true, invalidateAll: true });
 	}
 </script>
 
 <div class="grid grid-cols-1 gap-6 md:grid-cols-[250px_1fr]">
 	<div class="space-y-6">
 		<div>
-			<h2 class="mb-2 text-lg font-semibold">Search</h2>
-			<Input type="text" placeholder="Search perfumes..." bind:value={searchQuery} />
+			<h2 class="mb-2 text-lg font-semibold">Търси</h2>
+			<Input placeholder="Търси парфюм" bind:value={query} oninput={handleSearch} />
 		</div>
-		<div>
-			<h2 class="mb-2 text-lg font-semibold">Brands</h2>
-			<div class="space-y-2">
-				{#each brands as brand}
-					<div class="flex items-center space-x-2">
-						<Checkbox
-							id={brand}
-							checked={selectedBrands.has(brand)}
-							on:change={() => toggleBrand(brand)}
-						/>
-						<Label for={brand}>{brand}</Label>
-					</div>
-				{/each}
-			</div>
-		</div>
+		<Filter
+			filterLabel="Марки"
+			withSearch
+			searchPlaceholder="Търси марка..."
+			attributes={data.houses || []}
+			bind:selectedAttributes={selectedHouses}
+			onchange={handleSearch}
+		/>
+		<Filter
+			filterLabel="Пол"
+			attributes={['women', 'men', 'unisex']}
+			bind:selectedAttributes={selectedGender}
+			onchange={handleSearch}
+		/>
 	</div>
 	<div>
-		<h1 class="mb-6 text-3xl font-bold">Perfumes</h1>
+		<div class="mb-6 flex justify-between">
+			<h1 class="text-3xl font-bold">Парфюми</h1>
+			<p class="text-zinc-500">Резултати: {data.total}</p>
+		</div>
+		<AppliedFilters />
 		<div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-			{#each perfumes as perfume (perfume.name)}
-				<Card>
-					<img src={perfume.image} alt={perfume.name} class="h-48 w-full object-contain" />
-					<CardHeader>
-						<CardTitle>{perfume.name}</CardTitle>
-						<CardDescription>{perfume.house}</CardDescription>
-					</CardHeader>
-					<CardContent>
-						<p class="text-sm text-muted-foreground">Notes: {perfume.notes.join(', ')}</p>
-					</CardContent>
-					<CardFooter>
-						<Button variant="outline" class="w-full">View Details</Button>
-					</CardFooter>
+			{#each data.perfumes || [] as perfume (perfume.id)}
+				<Card class="flex flex-col">
+					<a href={`/perfume/${perfume.id}`}>
+						<img src={perfume.image_url} alt={perfume.name} class="h-48 w-full object-contain" />
+						<CardHeader>
+							<CardTitle>{perfume.name} {perfume.concentration}</CardTitle>
+							<CardDescription>{perfume.house}</CardDescription>
+						</CardHeader>
+						<CardContent class="flex-1">
+							<BestPriceList {perfume} />
+						</CardContent>
+					</a>
 				</Card>
 			{/each}
 		</div>
-		{#if perfumes.length === 0}
+		<Pagination />
+		{#if !data.perfumes || data.perfumes.length === 0}
 			<p class="mt-6 text-center text-muted-foreground">
 				No perfumes found matching your criteria.
 			</p>

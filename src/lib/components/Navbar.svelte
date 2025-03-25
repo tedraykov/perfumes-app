@@ -40,6 +40,11 @@
 						class="inline-flex items-center px-1 pt-1 text-sm font-medium text-muted-foreground hover:text-primary"
 						>Perfumes</a
 					>
+					<a
+						href="/scrapers"
+						class="inline-flex items-center px-1 pt-1 text-sm font-medium text-muted-foreground hover:text-primary"
+						>Scrapers</a
+					>
 					<Button href="/add-perfume">Добави парфюм</Button>
 				</div>
 			</div>

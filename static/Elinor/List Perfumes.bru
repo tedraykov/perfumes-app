@@ -1,0 +1,23 @@
+meta {
+  name: List Perfumes
+  type: http
+  seq: 2
+}
+
+post {
+  url: https://elinor.bg/product-list?skipOrderInit=1&skipCountryInit=1
+  body: formUrlEncoded
+  auth: none
+}
+
+params:query {
+  skipOrderInit: 1
+  skipCountryInit: 1
+}
+
+body:form-urlencoded {
+  productCategoryId: 56
+  orderBy: id-desc
+  perPage: 80
+  page: 1
+}

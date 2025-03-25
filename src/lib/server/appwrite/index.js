@@ -21,14 +21,14 @@ export const DATABASE_ID = '674198b30019df7d6529';
  * @returns {Promise<string>} The ID of the created perfume
  */
 async function addPerfume(databases, input) {
-  const perfume = await databases.createDocument(
-    DATABASE_ID,
-    PERFUME_COLLECTION_ID,
-    ID.unique(),
-    input
-  );
+	const perfume = await databases.createDocument(
+		DATABASE_ID,
+		PERFUME_COLLECTION_ID,
+		ID.unique(),
+		input
+	);
 
-  return perfume.$id;
+	return perfume.$id;
 }
 
 /**
@@ -36,12 +36,12 @@ async function addPerfume(databases, input) {
  * @param {AddPerfumeWithInventoryInput} input
  */
 async function addPerfumeWithInventory(databases, input) {
-  const perfumeId = await addPerfume(databases, perfume);
+	const perfumeId = await addPerfume(databases, perfume);
 
-  await databases.createDocument(DATABASE_ID, 'perfume_inventory', ID.unique(), {
-    ...inventory,
-    perfume: perfumeId
-  });
+	await databases.createDocument(DATABASE_ID, 'perfume_inventory', ID.unique(), {
+		...inventory,
+		perfume: perfumeId
+	});
 }
 
 /**
@@ -50,63 +50,66 @@ async function addPerfumeWithInventory(databases, input) {
  * @returns {Promise<PaginatedPerfumes>}
  */
 async function searchPerfumes(databases, input) {
-  const queries = [];
+	const queries = [];
 
-  if (input.search) {
-    queries.push(Query.search('name', input.search));
-  }
+	if (input.search) {
+		queries.push(Query.search('name', input.search));
+	}
 
-  if (input.brand) {
-    queries.push(Query.search('house', input.brand));
-  }
+	if (input.brand) {
+		queries.push(Query.search('house', input.brand));
+	}
 
-  const { total, documents } = await databases.listDocuments(
-    DATABASE_ID,
-    PERFUME_COLLECTION_ID,
-    queries
-  );
+	const { total, documents } = await databases.listDocuments(
+		DATABASE_ID,
+		PERFUME_COLLECTION_ID,
+		queries
+	);
 
-  // @ts-ignore
-  return { total, data: documents };
+	// @ts-ignore
+	return { total, data: documents };
 }
 
 /**
  * @param {import('@sveltejs/kit').RequestEvent} event
  */
 export function createSessionClient(event) {
-  const client = new Client()
-    .setEndpoint(PUBLIC_APPWRITE_ENDPOINT)
-    .setProject(PUBLIC_APPWRITE_PROJECT_ID);
+	const client = new Client()
+		.setEndpoint(PUBLIC_APPWRITE_ENDPOINT)
+		.setProject(PUBLIC_APPWRITE_PROJECT_ID);
 
-  const session = event.cookies.get(SESSION_COOKIE);
-  if (!session) {
-    throw new Error('No session');
-  }
+	const session = event.cookies.get(SESSION_COOKIE);
+	if (!session) {
+		throw new Error('No session');
+	}
 
-  client.setSession(session);
-  const databases = new Databases(client);
+	client.setSession(session);
+	const databases = new Databases(client);
 
-  return {
-    get account() {
-      return new Account(client);
-    },
-    get databases() {
-      return new Databases(client);
-    },
-    addPerfume: addPerfume.bind(null, databases),
-    searchPerfumes: searchPerfumes.bind(null, databases)
-  };
+	return {
+		get account() {
+			return new Account(client);
+		},
+		get databases() {
+			return new Databases(client);
+		},
+		addPerfume: addPerfume.bind(null, databases),
+		searchPerfumes: searchPerfumes.bind(null, databases)
+	};
 }
 
 export function createAdminClient() {
-  const client = new Client()
-    .setEndpoint(PUBLIC_APPWRITE_ENDPOINT)
-    .setProject(PUBLIC_APPWRITE_PROJECT_ID)
-    .setKey(APPWRITE_API_KEY);
+	const client = new Client()
+		.setEndpoint(PUBLIC_APPWRITE_ENDPOINT)
+		.setProject(PUBLIC_APPWRITE_PROJECT_ID)
+		.setKey(APPWRITE_API_KEY);
 
-  return {
-    get account() {
-      return new Account(client);
-    }
-  };
+	const databases = new Databases(client);
+
+	return {
+		get account() {
+			return new Account(client);
+		},
+		addPerfume: addPerfume.bind(null, databases)
+	};
 }

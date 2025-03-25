@@ -1,33 +1,37 @@
 <script>
-	import { cn } from "$lib/utils.js";
-	let className = undefined;
-	export let value = undefined;
-	export { className as class };
-	export let readonly = undefined;
+	import { cn } from '$lib/utils.js';
+
+	let {
+		ref = $bindable(null),
+		value = $bindable(),
+		type = 'text',
+		files = $bindable(),
+		class: className = null,
+		...restProps
+	} = $props();
 </script>
 
-<input
-	class={cn(
-		"border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
-		className
-	)}
-	bind:value
-	{readonly}
-	on:blur
-	on:change
-	on:click
-	on:focus
-	on:focusin
-	on:focusout
-	on:keydown
-	on:keypress
-	on:keyup
-	on:mouseover
-	on:mouseenter
-	on:mouseleave
-	on:mousemove
-	on:paste
-	on:input
-	on:wheel|passive
-	{...$$restProps}
-/>
+{#if type === 'file'}
+	<input
+		bind:this={ref}
+		class={cn(
+			'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm',
+			className
+		)}
+		type="file"
+		bind:files
+		bind:value
+		{...restProps}
+	/>
+{:else}
+	<input
+		bind:this={ref}
+		class={cn(
+			'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm',
+			className
+		)}
+		{type}
+		bind:value
+		{...restProps}
+	/>
+{/if}
