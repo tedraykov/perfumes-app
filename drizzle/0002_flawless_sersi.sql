@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX `inventory_perfume_id_volume_is_tester_website_unique` ON `inventory` (`perfume_id`,`volume`,`is_tester`,`website`);

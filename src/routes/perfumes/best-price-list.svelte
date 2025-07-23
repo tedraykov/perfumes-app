@@ -1,23 +1,13 @@
 <script lang="ts">
 	import { Separator } from '$lib/components/ui/separator';
-	import type { Database } from '$lib/server/supabase/types';
+	import type { PerfumeWithInventory, InventoryWithWebsite } from '$lib/server/db/schema';
 	import { toMoney } from '$lib/utils';
 
-	type Website = Database['public']['Tables']['websites']['Row'];
+	let { perfume }: { perfume: PerfumeWithInventory } = $props();
 
-	type PerfumeInventory = Database['public']['Tables']['perfume_inventory']['Row'] & {
-		websites: Website | null;
-	};
-
-	type Perfume = Database['public']['Tables']['perfumes']['Row'] & {
-		perfume_inventory: PerfumeInventory[];
-	};
-
-	let { perfume }: { perfume: Perfume } = $props();
-
-	function deriveBestPricePerVolume(perfume: Perfume) {
-		const bestPricePerVolume: { [volume: number]: PerfumeInventory } = {};
-		for (const inventory of perfume.perfume_inventory) {
+	function deriveBestPricePerVolume(perfume: PerfumeWithInventory) {
+		const bestPricePerVolume: { [volume: number]: InventoryWithWebsite } = {};
+		for (const inventory of perfume.inventory) {
 			if (!inventory.volume || !inventory.price) continue;
 
 			if (
@@ -40,10 +30,10 @@
 				<span>от</span>
 				<strong>{toMoney(inventory.price)}</strong>
 				<div class="flex flex-1 justify-end">
-					{#if inventory.websites}
+					{#if inventory.website}
 						<img
-							src={inventory.websites.logo_url}
-							alt={inventory.websites.name}
+							src={inventory.website.logo}
+							alt={inventory.website.name}
 							class="h-10 object-contain"
 						/>
 					{/if}

@@ -1,4 +1,6 @@
-import { supabase } from '$lib/server/supabase/client';
+import { db } from '$lib/server/db';
+import { perfumes as perfumesSchema } from '$lib/server/db/schema';
+import { eq } from 'drizzle-orm';
 import { FragranticaClient } from './client';
 
 /**
@@ -6,30 +8,34 @@ import { FragranticaClient } from './client';
  * and try to link them
  */
 export default async function linkPerfumes() {
-	// Get all perfumes that don't have a fragrantica URL
-	const perfumes = await supabase.from('perfumes').select('*').is('fragrantica_url', null);
+  // Get all perfumes that don't have a fragrantica URL
+  const perfumes = await db.query.perfumes.findMany({
+    where: (perfume, { isNull }) => isNull(perfume.fragrantica_url)
+  });
 
-	if (!perfumes.data) {
-		console.warn('No perfumes found');
-		return;
-	}
+  if (!perfumes) {
+    console.warn('No perfumes found');
+    return;
+  }
 
-	console.log(`Linking ${perfumes.data.length} perfumes`);
+  console.log(`Linking ${perfumes.length} perfumes`);
 
-	for (const perfume of perfumes.data) {
-		const client = new FragranticaClient();
-		const data = await client.searchFragrance(`${perfume.name} ${perfume.house}`);
+  for (const perfume of perfumes) {
+    const client = new FragranticaClient();
+    const data = await client.searchFragrance(`${perfume.name} ${perfume.house}`);
 
-		if (!data) {
-			console.warn('No data found for:', perfume);
-			continue;
-		}
+    if (!data) {
+      console.warn('No data found for:', perfume);
+      continue;
+    }
 
-		await supabase
-			.from('perfumes')
-			.update({ fragrantica_url: data.fragrantica_url, image_url: data.image })
-			.match({ id: perfume.id });
+    await db
+      .update(perfumesSchema)
+      .set({
+        fragrantica_url: data.fragrantica_url
+      })
+      .where(eq(perfumesSchema.id, perfume.id));
 
-		await new Promise((resolve) => setTimeout(resolve, 200));
-	}
+    await new Promise((resolve) => setTimeout(resolve, 200));
+  }
 }

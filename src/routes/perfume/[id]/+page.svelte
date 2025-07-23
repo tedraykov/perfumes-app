@@ -32,12 +32,12 @@
 				</tr>
 			</thead>
 			<tbody>
-				{#each perfume.perfume_inventory as inventory}
+				{#each perfume.inventory || [] as inventory}
 					<tr>
 						<td class="border p-2">
 							<img
-								src={inventory.websites.logo_url}
-								alt={inventory.websites.name}
+								src={inventory.website?.logo}
+								alt={inventory.website?.name}
 								class="rounded bg-zinc-600 p-2"
 							/>
 						</td>

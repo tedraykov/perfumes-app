@@ -1,0 +1,346 @@
+{
+  "id": "fd31214d-29a5-47bf-bba5-43487e0ee003",
+  "prevId": "7dcfa2e0-f9fc-4d16-8869-379db716d94b",
+  "version": "6",
+  "dialect": "sqlite",
+  "tables": {
+    "houses": {
+      "name": "houses",
+      "columns": {
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "image_url": {
+          "name": "image_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "inventory": {
+      "name": "inventory",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "perfume_id": {
+          "name": "perfume_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "volume": {
+          "name": "volume",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "is_tester": {
+          "name": "is_tester",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "price": {
+          "name": "price",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "website": {
+          "name": "website",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "url": {
+          "name": "url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "inventory_perfume_id_perfumes_id_fk": {
+          "name": "inventory_perfume_id_perfumes_id_fk",
+          "tableFrom": "inventory",
+          "columnsFrom": [
+            "perfume_id"
+          ],
+          "tableTo": "perfumes",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "inventory_website_websites_name_fk": {
+          "name": "inventory_website_websites_name_fk",
+          "tableFrom": "inventory",
+          "columnsFrom": [
+            "website"
+          ],
+          "tableTo": "websites",
+          "columnsTo": [
+            "name"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "notes": {
+      "name": "notes",
+      "columns": {
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "image_url": {
+          "name": "image_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "perfume_notes": {
+      "name": "perfume_notes",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "perfume_id": {
+          "name": "perfume_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "note": {
+          "name": "note",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "note_type": {
+          "name": "note_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "perfume_notes_perfume_id_perfumes_id_fk": {
+          "name": "perfume_notes_perfume_id_perfumes_id_fk",
+          "tableFrom": "perfume_notes",
+          "columnsFrom": [
+            "perfume_id"
+          ],
+          "tableTo": "perfumes",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "perfume_notes_note_notes_name_fk": {
+          "name": "perfume_notes_note_notes_name_fk",
+          "tableFrom": "perfume_notes",
+          "columnsFrom": [
+            "note"
+          ],
+          "tableTo": "notes",
+          "columnsTo": [
+            "name"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "perfumes": {
+      "name": "perfumes",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "house": {
+          "name": "house",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "image_url": {
+          "name": "image_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "fragrantica_url": {
+          "name": "fragrantica_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "gender": {
+          "name": "gender",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "concentration": {
+          "name": "concentration",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "perfume_name_idx": {
+          "name": "perfume_name_idx",
+          "columns": [
+            "name"
+          ],
+          "isUnique": false
+        },
+        "perfume_house_idx": {
+          "name": "perfume_house_idx",
+          "columns": [
+            "house"
+          ],
+          "isUnique": false
+        },
+        "perfumes_name_house_gender_concentration_unique": {
+          "name": "perfumes_name_house_gender_concentration_unique",
+          "columns": [
+            "name",
+            "house",
+            "gender",
+            "concentration"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "perfumes_house_houses_name_fk": {
+          "name": "perfumes_house_houses_name_fk",
+          "tableFrom": "perfumes",
+          "columnsFrom": [
+            "house"
+          ],
+          "tableTo": "houses",
+          "columnsTo": [
+            "name"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "websites": {
+      "name": "websites",
+      "columns": {
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "address": {
+          "name": "address",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "logo": {
+          "name": "logo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    }
+  },
+  "views": {},
+  "enums": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  },
+  "internal": {
+    "indexes": {}
+  }
+}
