@@ -48,22 +48,22 @@
 					<Button href="/add-perfume">Добави парфюм</Button>
 				</div>
 			</div>
-			<div class="flex items-center">
-				{#if loggedIn}
-					<DropdownMenu>
-						<DropdownMenuTrigger>
-							<Avatar>
-								<AvatarFallback>{data.user.name}</AvatarFallback>
-							</Avatar>
-						</DropdownMenuTrigger>
-						<DropdownMenuContent>
-							<DropdownMenuItem on:click={logout}>Log out</DropdownMenuItem>
-						</DropdownMenuContent>
-					</DropdownMenu>
-				{:else}
-					<Button href="/login">Log in</Button>
-				{/if}
-			</div>
+			<!-- <div class="flex items-center"> -->
+			<!-- 	{#if loggedIn} -->
+			<!-- 		<DropdownMenu> -->
+			<!-- 			<DropdownMenuTrigger> -->
+			<!-- 				<Avatar> -->
+			<!-- 					<AvatarFallback>{data.user.name}</AvatarFallback> -->
+			<!-- 				</Avatar> -->
+			<!-- 			</DropdownMenuTrigger> -->
+			<!-- 			<DropdownMenuContent> -->
+			<!-- 				<DropdownMenuItem on:click={logout}>Log out</DropdownMenuItem> -->
+			<!-- 			</DropdownMenuContent> -->
+			<!-- 		</DropdownMenu> -->
+			<!-- 	{:else} -->
+			<!-- 		<Button href="/login">Log in</Button> -->
+			<!-- 	{/if} -->
+			<!-- </div> -->
 		</div>
 	</div>
 </nav>
