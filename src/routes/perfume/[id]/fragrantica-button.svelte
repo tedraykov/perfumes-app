@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Button } from '$lib/components/ui/button';
+	import { Button, buttonVariants } from '$lib/components/ui/button';
 	import * as Popover from '$lib/components/ui/popover';
 	import PenLineIcon from '@lucide/svelte/icons/pen-line';
 	import CrossIcon from '@lucide/svelte/icons/x';
@@ -16,11 +16,9 @@
 
 <div class="flex h-fit items-end gap-2">
 	<Popover.Popover>
-		<Popover.Trigger>
-			<Button variant="outline" class="min-w-max sm:py-6">
-				<img src="/fragrantica.svg" alt="Fragrantica Logo" class="size-6 object-cover sm:size-8" />
-				<ChevronDownIcon />
-			</Button>
+		<Popover.Trigger class={`${buttonVariants({ variant: 'outline' })} min-w-max sm:py-6`}>
+			<img src="/fragrantica.svg" alt="Fragrantica Logo" class="size-6 object-cover sm:size-8" />
+			<ChevronDownIcon />
 		</Popover.Trigger>
 		<Popover.Content align="end" class="flex w-96 items-center gap-2">
 			{#if editMode}

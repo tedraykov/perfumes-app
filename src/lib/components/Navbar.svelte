@@ -1,27 +1,25 @@
-<script>
+<script lang="ts">
 	import { Button } from '$lib/components/ui/button';
-	import { Avatar, AvatarFallback } from '$lib/components/ui/avatar';
-	import {
-		DropdownMenu,
-		DropdownMenuContent,
-		DropdownMenuItem,
-		DropdownMenuTrigger
-	} from '$lib/components/ui/dropdown-menu';
 
-	/** @type {{ user: {name: string} | undefined }} */
-	let data = $props();
+	type NavbarProps = {
+		user:
+			| {
+					name: string;
+			  }
+			| undefined;
+	};
+	let data: NavbarProps = $props();
 
-	let loggedIn = $derived(Boolean(data.user));
-
-	/** @param {CustomEvent} event */
-	async function logout(event) {
-		event.preventDefault();
-		await fetch('/?/logout', {
-			method: 'POST',
-			body: new FormData()
-		});
-		location.reload();
-	}
+	// let loggedIn = $derived(Boolean(data.user));
+	//
+	// async function logout(event: CustomEvent) {
+	// 	event.preventDefault();
+	// 	await fetch('/?/logout', {
+	// 		method: 'POST',
+	// 		body: new FormData()
+	// 	});
+	// 	location.reload();
+	// }
 </script>
 
 <nav class="border-b bg-background">
@@ -32,18 +30,15 @@
 					<span class="text-2xl font-bold text-primary">Парфюмни Ентусиасти</span>
 				</div>
 				<div class="hidden items-center sm:ml-6 sm:flex sm:space-x-8">
-					<a href="/" class="inline-flex items-center px-1 pt-1 text-sm font-medium text-primary"
-						>Home</a
-					>
 					<a
 						href="/perfumes"
 						class="inline-flex items-center px-1 pt-1 text-sm font-medium text-muted-foreground hover:text-primary"
-						>Perfumes</a
+						>Парфюми</a
 					>
 					<a
-						href="/scrapers"
+						href="/admin"
 						class="inline-flex items-center px-1 pt-1 text-sm font-medium text-muted-foreground hover:text-primary"
-						>Scrapers</a
+						>Admin</a
 					>
 					<Button href="/add-perfume">Добави парфюм</Button>
 				</div>

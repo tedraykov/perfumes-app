@@ -32,7 +32,11 @@ export class FragranticaClient {
     // example response:
     const data = await response.json();
 
-    const hit = data?.results[0]?.hits[0];
+    if (!data || !data.results || !data.results[0].hits) {
+      console.warn('No results found for query:', query);
+      return null;
+    }
+    const [hit] = data.results[0].hits;
 
     console.log(hit);
     if (!hit) {

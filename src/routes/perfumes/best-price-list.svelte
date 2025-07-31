@@ -25,7 +25,7 @@
 	{#each deriveBestPricePerVolume(perfume) as inventory}
 		<Separator />
 		<li>
-			<div class="flex items-center gap-1">
+			<div class="flex items-center gap-1 text-sm">
 				<span>{inventory.volume} мл.</span>
 				<span>от</span>
 				<strong>{toMoney(inventory.price)}</strong>

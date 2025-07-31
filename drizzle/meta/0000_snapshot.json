@@ -1,9 +1,71 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "7dcfa2e0-f9fc-4d16-8869-379db716d94b",
+  "id": "8b329f9e-02e4-4cd3-9984-3e47a2e77e7d",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
+    "attributes_mappings": {
+      "name": "attributes_mappings",
+      "columns": {
+        "website": {
+          "name": "website",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "concentration": {
+          "name": "concentration",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "gender": {
+          "name": "gender",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "is_tester": {
+          "name": "is_tester",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "is_set": {
+          "name": "is_set",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "attributes_mappings_website_description_pk": {
+          "columns": [
+            "website",
+            "description"
+          ],
+          "name": "attributes_mappings_website_description_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
     "houses": {
       "name": "houses",
       "columns": {
@@ -81,7 +143,18 @@
           "autoincrement": false
         }
       },
-      "indexes": {},
+      "indexes": {
+        "inventory_perfume_id_volume_is_tester_website_unique": {
+          "name": "inventory_perfume_id_volume_is_tester_website_unique",
+          "columns": [
+            "perfume_id",
+            "volume",
+            "is_tester",
+            "website"
+          ],
+          "isUnique": true
+        }
+      },
       "foreignKeys": {
         "inventory_perfume_id_perfumes_id_fk": {
           "name": "inventory_perfume_id_perfumes_id_fk",
@@ -141,13 +214,6 @@
     "perfume_notes": {
       "name": "perfume_notes",
       "columns": {
-        "id": {
-          "name": "id",
-          "type": "integer",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": true
-        },
         "perfume_id": {
           "name": "perfume_id",
           "type": "integer",
@@ -155,8 +221,8 @@
           "notNull": false,
           "autoincrement": false
         },
-        "note": {
-          "name": "note",
+        "note_name": {
+          "name": "note_name",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
@@ -185,12 +251,12 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "perfume_notes_note_notes_name_fk": {
-          "name": "perfume_notes_note_notes_name_fk",
+        "perfume_notes_note_name_notes_name_fk": {
+          "name": "perfume_notes_note_name_notes_name_fk",
           "tableFrom": "perfume_notes",
           "tableTo": "notes",
           "columnsFrom": [
-            "note"
+            "note_name"
           ],
           "columnsTo": [
             "name"
@@ -199,7 +265,15 @@
           "onUpdate": "no action"
         }
       },
-      "compositePrimaryKeys": {},
+      "compositePrimaryKeys": {
+        "perfume_notes_perfume_id_note_name_pk": {
+          "columns": [
+            "perfume_id",
+            "note_name"
+          ],
+          "name": "perfume_notes_perfume_id_note_name_pk"
+        }
+      },
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
@@ -236,6 +310,13 @@
         },
         "fragrantica_url": {
           "name": "fragrantica_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "fragrantica_name": {
+          "name": "fragrantica_name",
           "type": "text",
           "primaryKey": false,
           "notNull": false,

@@ -1,256 +1,202 @@
+import { upsertPerfume, type UpsertPerfume } from '$lib/server/db';
+import { parseDescription } from '$lib/server/db/attributes-mapping';
+import type { NewInventory, NewPerfume } from '$lib/server/db/schema';
+import type { Queue } from 'bullmq';
+import type { Job } from 'bullmq';
 import * as cheerio from 'cheerio';
-import type { Database } from '../../supabase/types';
-import { supabase } from '$lib/server/supabase/client.js';
-
-type Perfume = Database['public']['Tables']['perfumes']['Row'];
-type PerfumeInventory = Database['public']['Tables']['perfume_inventory']['Row'];
-
-type PerfumeData = {
-  perfume: Partial<Perfume>;
-  inventory: Partial<PerfumeInventory>[];
-};
-
-const descriptionAttributes = {
-  'Парфюм EDP Тестер за мъже': {
-    concentration: 'EDP',
-    tester: true,
-    gender: 'men'
-  },
-  'Парфюм EDP за жени': { concentration: 'EDP', gender: 'women' },
-  'Комплект с Парфюм EDP за жени': {
-    concentration: 'EDP',
-    gender: 'women',
-    set: true
-  },
-  'Парфюм EDP за мъже': { concentration: 'EDP', gender: 'men' },
-  'Парфюм EDT Тестер за мъже': {
-    concentration: 'EDT',
-    tester: true,
-    gender: 'men'
-  },
-  'Парфюм EDT': { concentration: 'EDT' },
-  'Парфюм EDP': { concentration: 'EDP' },
-  'EDC Тестер': { concentration: 'EDC', tester: true },
-  'EDC Тестер за жени': { concentration: 'EDC', tester: true, gender: 'women' },
-  'Парфюм EDT за мъже': { concentration: 'EDT', gender: 'men' },
-  'Парфюм EDT за жени': { concentration: 'EDT', gender: 'women' },
-  'Комплект с Парфюм EDP за мъже': {
-    concentration: 'EDP',
-    gender: 'men',
-    set: true
-  },
-  'Парфюм EDP Тестер за жени': {
-    concentration: 'EDP',
-    tester: true,
-    gender: 'women'
-  },
-  'Комплект с Парфюм EDT за жени': {
-    concentration: 'EDT',
-    gender: 'women',
-    set: true
-  },
-  'Комплект с Парфюм EDT за мъже': {
-    concentration: 'EDT',
-    gender: 'men',
-    set: true
-  },
-  'Perfumed Oil': { concentration: 'Oil' },
-  'Extrait de Parfum': { concentration: 'Extrait' },
-  'Парфюм EDP Тестер': { concentration: 'EDP', tester: true },
-  'Парфюм EDT Тестер за жени': {
-    concentration: 'EDT',
-    tester: true,
-    gender: 'women'
-  },
-  'Extrait de Parfum Тестер': { concentration: 'Extrait', tester: true },
-  'Extrait de parfum': { concentration: 'Extrait' },
-  'Parfem за жени': { concentration: 'Perfume', gender: 'women' },
-  'Комплект с Парфюм EDT': { concentration: 'EDT', set: true },
-  'Одеколон за мъже': { concentration: 'EDC', gender: 'men' },
-  'Комплект с Parfem': { concentration: 'Perfume', set: true },
-  'Perfume Extract': { concentration: 'Perfume' },
-  'Парфюм EDT Тестер': { concentration: 'EDT', tester: true },
-  'Комплект с Parfem за мъже': {
-    concentration: 'Perfume',
-    gender: 'men',
-    set: true
-  },
-  'Parfem за мъже': { concentration: 'Perfume', gender: 'men' },
-  'EDC за мъже': { concentration: 'EDC', gender: 'men' },
-  Parfem: { concentration: 'Perfume' },
-  Parfum: { concentration: 'Perfume' },
-  'Афтършейв за мъже': { gender: 'men' }
-};
 
 async function requestElinorPerfumes(page: number = 1) {
-  const url = 'https://elinor.bg/product-list?skipOrderInit=1&skipCountryInit=1';
+	const url = 'https://elinor.bg/product-list?skipOrderInit=1&skipCountryInit=1';
 
-  const formData = new FormData();
-  formData.append('productCategoryId', '56');
-  formData.append('filterParams[minPrice]', '0');
-  formData.append('filterParams[maxPrice]', '1370');
-  formData.append('orderBy', 'id-desc');
-  formData.append('perPage', '80');
-  formData.append('page', String(page));
+	const formData = new FormData();
+	formData.append('productCategoryId', '56');
+	formData.append('filterParams[minPrice]', '0');
+	formData.append('filterParams[maxPrice]', '1370');
+	formData.append('orderBy', 'id-desc');
+	formData.append('perPage', '80');
+	formData.append('page', String(page));
 
-  const response = await fetch(url, {
-    method: 'POST',
-    body: formData
-  });
+	const response = await fetch(url, {
+		method: 'POST',
+		body: formData
+	});
 
-  return response.json();
-}
-
-function parseDescription(description: string) {
-  const attributes = descriptionAttributes[description];
-  if (!attributes) {
-    console.error('Unknown description:', description);
-    return {};
-  }
-
-  return attributes;
+	return response.json();
 }
 
 async function getPerfumeInventory(url: string) {
-  const fullUrl = `https://elinor.bg${url}`;
-  const response = await fetch(fullUrl);
-  console.log('Perfume inventory url:', fullUrl);
-  const html = await response.text();
+	const fullUrl = `https://elinor.bg${url}`;
+	const response = await fetch(fullUrl);
+	console.log('Perfume inventory url:', fullUrl);
+	const html = await response.text();
 
-  const $ = cheerio.load(html);
+	const $ = cheerio.load(html);
 
-  const products: Partial<PerfumeInventory>[] = [];
+	const products: NewInventory[] = [];
 
-  $('.orderable-product').each((_, element) => {
-    const volumeText = $(element).find('.volume').text().trim().replace('ml', '');
-    const priceText = $(element)
-      .find('.regular-price')
-      .text()
-      .trim()
-      .replace('лв.', '')
-      .replace(',', '.');
+	$('.orderable-product').each((_, element) => {
+		const volumeText = $(element).find('.volume').text().trim().replace('ml', '');
+		const priceText = $(element)
+			.find('.regular-price')
+			.text()
+			.trim()
+			.replace('лв.', '')
+			.replace(',', '.');
 
-    const volume = parseFloat(volumeText);
-    const price = parseFloat(priceText);
+		const volume = parseFloat(volumeText);
+		const price = parseFloat(priceText);
 
-    if (volume && price) {
-      products.push({ volume, price, website: 'elinor', is_tester: false, url: fullUrl });
-    }
-  });
-  await new Promise((resolve) => setTimeout(resolve, 100));
-  return products;
+		if (volume && price) {
+			products.push({ volume, price, website: 'elinor', is_tester: 0, url: fullUrl });
+		}
+	});
+	await new Promise((resolve) => setTimeout(resolve, 200));
+	return products;
 }
 
 export class ElinorScraper {
-  totalPages: number = 0;
-  allHouses: string[] = [];
+	totalPages = 0;
+	totalItemsCount = 0;
+	allHouses: string[] = [];
+	job: Job<any, any, string>;
+	queue: Queue;
 
-  async scrape() {
-    this.totalPages = await this.getTotalPages();
-    this.allHouses = await this.getAllHouses();
+	constructor(queue: Queue, job: Job) {
+		this.queue = queue;
+		this.job = job;
+	}
 
-    await this.scrapeAllPerfumes();
-  }
-  async scrapeAllPerfumes() {
-    for (let page = 1; page <= this.totalPages; page++) {
-      await this.getPerfumes(page);
+	async scrape() {
+		const { totalPages, totalItemsCount } = await this.getSearchInfo();
+		this.totalItemsCount = totalItemsCount;
+		this.totalPages = totalPages;
+		this.initJobData();
 
-      await new Promise((resolve) => setTimeout(resolve, 500));
-    }
-  }
-  async getTotalPages() {
-    const data = await requestElinorPerfumes(1);
+		this.allHouses = await this.getAllHouses();
 
-    return Math.floor(data.totalItemsCount / 80);
-  }
+		await this.scrapeAllPerfumes();
+	}
 
-  async getAllHouses() {
-    const data = await requestElinorPerfumes();
-    const houseFilter = data.filter['1'];
+	async initJobData() {
+		const initJobData = (await this.getLatestJobData()) || {};
 
-    return houseFilter.options.map(({ label }: { label: string }) => label);
-  }
+		initJobData['totalItemsCount'] = this.totalItemsCount;
+		initJobData['processedItemsCount'] = 0;
+		await this.job.updateData(initJobData);
+	}
 
-  async getPerfumes(page: number): Promise<PerfumeData[]> {
-    const data = await requestElinorPerfumes(page);
+	async getLatestJobData() {
+		if (!this.job.id) {
+			throw new Error('Job is missing');
+		}
+		const latestJob: Job = await this.queue.getJob(this.job.id);
 
-    const $ = cheerio.load(data.listItems);
-    const perfumes: PerfumeData[] = [];
+		return latestJob.data;
+	}
 
-    // Extract perfume details
-    for (const product of $('.product-list-item')) {
-      const element = $(product);
+	async scrapeAllPerfumes() {
+		for (let page = 1; page <= this.totalPages; page++) {
+			this.job.updateProgress((page / this.totalPages) * 100);
 
-      const nameAndHouse = element.find('.product-list-item-name').text().trim();
-      const { name, house } = this.parseNameAndHouse(nameAndHouse);
-      const description = element.find('.product-list-item-description').text().trim();
+			await this.getPerfumes(page);
 
-      const { gender = 'unisex', concentration, set } = parseDescription(description);
+			await new Promise((resolve) => setTimeout(resolve, 500));
+		}
+	}
+	async getSearchInfo() {
+		const data = await requestElinorPerfumes(1);
 
-      if (set) {
-        continue;
-      }
+		return {
+			totalItemsCount: data.totalItemsCount,
+			totalPages: Math.floor(data.totalItemsCount / 80)
+		};
+	}
 
-      const imageUrl = element.find('.product-list-item-image').attr('data-first-src') || null;
-      const link = element.find('.product-list-item-link').attr('href');
+	async getAllHouses() {
+		const data = await requestElinorPerfumes();
+		const houseFilter = data.filter['1'];
 
-      if (!link) {
-        console.error('No link found for:', name);
-        continue;
-      }
+		return houseFilter.options.map(({ label }: { label: string }) => label);
+	}
 
-      const inventory = await getPerfumeInventory(link);
+	async getPerfumes(page: number): Promise<UpsertPerfume[]> {
+		const data = await requestElinorPerfumes(page);
 
-      const perfume: Partial<Perfume> = {
-        name,
-        image_url: `https://elinor.bg${imageUrl}`,
-        house
-      };
+		const $ = cheerio.load(data.listItems);
+		const perfumes: UpsertPerfume[] = [];
 
-      if (gender) {
-        perfume.gender = gender;
-      }
+		// Extract perfume details
+		for (const product of $('.product-list-item')) {
+			const element = $(product);
 
-      if (concentration) {
-        perfume.concentration = concentration;
-      }
+			const nameAndHouse = element.find('.product-list-item-name').text().trim();
+			const { name, house } = this.parseNameAndHouse(nameAndHouse);
+			const description = element.find('.product-list-item-description').text().trim();
 
-      this.processor({ perfume, inventory });
-    }
-    return perfumes;
-  }
+			let attributes;
+			try {
+				attributes = await parseDescription(description, 'elinor');
+			} catch (error) {
+				console.error('Could not parse attributes for: ', description);
+				continue;
+			}
 
-  /**
-   * The full name of an elinor perfume starts with the house name followed by the perfume name
-   * separated by a space. This function extracts the house name and the perfume name from the full name
-   */
-  parseNameAndHouse(nameAndHouse: string): { name: string; house: string } {
-    const house = this.allHouses.find((house) => nameAndHouse.startsWith(house));
-    if (!house) {
-      console.error('No house found for:', nameAndHouse);
-      return { name: nameAndHouse, house: '' };
-    }
-    const name = nameAndHouse.replace(house, '').trim();
+			if (!attributes) {
+				console.error('Could not parse attributes for: ', description);
+				continue;
+			}
 
-    return { name, house };
-  }
+			const { is_set, is_tester, concentration, gender } = attributes;
 
-  async processor({ perfume, inventory }: PerfumeData) {
-    const response = await supabase
-      .from('perfumes')
-      .upsert(perfume, { onConflict: 'name, house, gender, concentration' })
-      .select();
-    const perfumeId = response.data && response.data[0].id;
+			// Ignore sets
+			if (is_set) {
+				continue;
+			}
 
-    if (!perfumeId) {
-      console.error('Upsert failed for perfume. No data returned', perfume);
-      return;
-    }
+			const imageUrl = element.find('.product-list-item-image').attr('data-first-src') || null;
+			const link = element.find('.product-list-item-link').attr('href');
 
-    // Bulk Upsert perfume inventory
-    const inventoryWithPerfumeId = inventory.map((item) => ({ ...item, perfume_id: perfumeId }));
-    await supabase
-      .from('perfume_inventory')
-      .upsert(inventoryWithPerfumeId, { onConflict: 'perfume_id, volume, website' });
-  }
+			if (!link) {
+				console.error('No link found for:', name);
+				continue;
+			}
+
+			const inventory = await getPerfumeInventory(link);
+
+			inventory.forEach((item) => (item.is_tester = is_tester));
+
+			const perfume: NewPerfume = {
+				name,
+				image_url: `https://elinor.bg${imageUrl}`,
+				house,
+				concentration,
+				gender
+			};
+
+			await upsertPerfume({ perfume, inventory });
+
+			const jobData = (await this.getLatestJobData()) || {};
+			if (jobData['aborted']) {
+				throw new Error('This job was aborted');
+			}
+			jobData['processedItemsCount'] += 1;
+			this.job.updateData(jobData);
+		}
+		return perfumes;
+	}
+
+	/**
+	 * The full name of an elinor perfume starts with the house name followed by the perfume name
+	 * separated by a space. This function extracts the house name and the perfume name from the full name
+	 */
+	parseNameAndHouse(nameAndHouse: string): { name: string; house: string } {
+		const house = this.allHouses.find((house) => nameAndHouse.startsWith(house));
+		if (!house) {
+			console.error('No house found for:', nameAndHouse);
+			return { name: nameAndHouse, house: '' };
+		}
+		const name = nameAndHouse.replace(house, '').trim();
+
+		return { name, house };
+	}
 }

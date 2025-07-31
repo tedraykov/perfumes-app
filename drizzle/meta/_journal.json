@@ -5,43 +5,15 @@
     {
       "idx": 0,
       "version": "6",
-      "when": 1753196206085,
-      "tag": "0000_solid_maggott",
+      "when": 1753440211058,
+      "tag": "0000_abandoned_sinister_six",
       "breakpoints": true
     },
     {
       "idx": 1,
       "version": "6",
-      "when": 1753196220184,
+      "when": 1753440227947,
       "tag": "0001_seed-websites",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "6",
-      "when": 1753197493007,
-      "tag": "0002_flawless_sersi",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "6",
-      "when": 1753287656458,
-      "tag": "0003_mysterious_juggernaut",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "6",
-      "when": 1753370516710,
-      "tag": "0004_strange_domino",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "6",
-      "when": 1753383860518,
-      "tag": "0005_sudden_master_mold",
       "breakpoints": true
     }
   ]

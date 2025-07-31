@@ -28,9 +28,10 @@
 							<span class="text-xl font-semibold leading-tight">{item.price} лв.</span>
 							<span class="text-sm text-muted-foreground">{item.volume}мл</span>
 						</div>
-						<Button variant="secondary" href={item.url}>Виж офертата <ExternalIcon /></Button>
+						<Button variant="secondary" href={item.url} target="_blank"
+							>Виж офертата <ExternalIcon /></Button
+						>
 					</div>
-					<!-- <Button variant="secondary" href={item.url}>Виж офертата <ExternalIcon /></Button> -->
 				</CardContent>
 			</Card>
 		{/each}

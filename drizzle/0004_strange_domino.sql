@@ -1,1 +1,0 @@
-ALTER TABLE `perfumes` ADD `fragrantica_name` text;

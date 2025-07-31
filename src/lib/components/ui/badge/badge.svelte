@@ -10,6 +10,8 @@
 					'bg-secondary text-secondary-foreground hover:bg-secondary/80 border-transparent',
 				destructive:
 					'bg-destructive text-destructive-foreground hover:bg-destructive/80 border-transparent',
+				info: 'border-transparent bg-blue-500 text-secondary hover:bg-blue-500',
+				success: 'border-transparent bg-emerald-500 text-secondary hover:bg-emerald-500',
 				outline: 'text-foreground'
 			}
 		},

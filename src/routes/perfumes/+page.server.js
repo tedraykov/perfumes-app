@@ -6,7 +6,7 @@ import { inArray } from 'drizzle-orm';
 
 /** @type {import('./$types').PageServerLoad} */
 export async function load({ url }) {
-  const pageSize = 20;
+  const pageSize = 21;
   const page = url.searchParams.get('page') || '1';
   const searchQuery = url.searchParams.get('query') || '';
   const selectedHouses = url.searchParams.get('houses') || '';

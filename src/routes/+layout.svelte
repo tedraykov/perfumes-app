@@ -1,5 +1,5 @@
 <script>
-	import Navbar from '$lib/components/Navbar.svelte';
+	import Navbar from '$lib/components/navbar.svelte';
 	import '../app.css';
 	/** @typedef {import('./$types').LayoutData} LayoutData */
 
