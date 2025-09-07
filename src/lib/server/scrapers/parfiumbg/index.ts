@@ -1,212 +1,242 @@
-import { upsertPerfume, type UpsertPerfume } from '$lib/server/db';
+import {
+	upsertPerfume,
+	upsertUnprocessedDescription,
+	upsertUprocessedPerfume,
+	type UpsertPerfume
+} from '$lib/server/db';
+import { parseDescription } from '$lib/server/db/attributes-mapping';
 import { type NewInventory, type NewPerfume } from '$lib/server/db/schema';
+import type { JobObserver } from '$lib/server/queue';
 import * as cheerio from 'cheerio';
 
-const descriptionAttributes: {
-  [description: string]: { concentration: string; is_tester: boolean };
-} = {
-  'Парфюмна вода за мъже EDP': { concentration: 'EDP', is_tester: false },
-  'Тоалетна вода за мъже EDT': { concentration: 'EDT', is_tester: false },
-  'Парфюм за мъже': { concentration: 'Perfume', is_tester: false },
-  'Унисекс парфюмна вода EDP': { concentration: 'EDP', is_tester: false },
-  'Парфюмна вода': { concentration: 'EDP', is_tester: false },
-  'Тоалетна вода за жени EDT': { concentration: 'EDT', is_tester: false },
-  'Унисекс тоалетна вода EDT': { concentration: 'EDT', is_tester: false },
-  'Парфюмен екстракт': { concentration: 'Extrait', is_tester: false },
-  'Парфюмен екстракт за мъже': { concentration: 'Extrait', is_tester: false },
-  'Парфюмен екстракт без опаковка': { concentration: 'Extrait', is_tester: true },
-  'Парфюм за жени': { concentration: 'Perfume', is_tester: false },
-  'Унисекс парфюмен екстракт': { concentration: 'Extrait', is_tester: false },
-  'Парфюмна вода за жени': { concentration: 'EDP', is_tester: false },
-  'Парфюмна вода за жени EDP': { concentration: 'EDP', is_tester: false },
-  'Тоалетна вода': { concentration: 'EDT', is_tester: false },
-  'Унисекс парфюмна вода': { concentration: 'EDP', is_tester: false },
-  Парфюм: { concentration: 'Perfume', is_tester: false },
-  'Парфюмна вода за мъже': { concentration: 'EDP', is_tester: false },
-  'Парфюмен екстракт за жени': { concentration: 'Extrait', is_tester: false },
-  'Тоалетна вода за мъже': { concentration: 'EDT', is_tester: false },
-  'Одеколон за мъже EDC': { concentration: 'EDC', is_tester: false },
-  'Одеколон за мъже': { concentration: 'EDC', is_tester: false },
-  'Тоалетна вода без опаковка': { concentration: 'EDT', is_tester: true },
-  'парфюмна вода без опаковка': { concentration: 'EDP', is_tester: true }
-};
+const WEBSITE_NAME = 'parfiumbg';
 
 export class ParfiumbgScraper {
-  totalPages: number = 0;
+	totalPages = 0;
+	totalItemsCount = 0;
+	jobObserver: JobObserver;
 
-  async scrape() {
-    this.totalPages = await this.getTotalPages();
-    console.log('Total pages:', this.totalPages);
+	constructor(jobObserver: JobObserver) {
+		this.jobObserver = jobObserver;
+	}
 
-    for (let page = 1; page <= this.totalPages; page++) {
-      console.log('Scraping page:', page);
+	async scrape() {
+		try {
+			await this.initJobData();
 
-      await this.getPerfumes(page);
+			for (let page = 1; page <= this.totalPages; page++) {
+				console.log('Scraping page:', page);
+				await this.jobObserver.updateProgress((page / this.totalPages) * 100);
 
-      await new Promise((resolve) => setTimeout(resolve, 500));
-    }
-  }
+				await this.getPerfumes(page);
 
-  async scrapeOne(url: string) {
-    const perfumeData: UpsertPerfume = {
-      inventory: []
-    };
+				await new Promise((resolve) => setTimeout(resolve, 500));
+			}
+		} catch (error) {
+			if ((error as Error).message == 'Job was aborted') {
+				return;
+			}
+			console.error(error);
+		}
+	}
 
-    await this.extractPerfumeDetails(url, perfumeData);
+	async initJobData() {
+		const { totalPages, totalItemsCount } = await this.getSearchInfo();
+		this.totalItemsCount = totalItemsCount;
+		this.totalPages = totalPages;
+		console.log('Total pages:', this.totalPages);
 
-    await upsertPerfume(perfumeData);
-  }
+		await this.jobObserver.updateData({
+			totalItemsCount: this.totalItemsCount,
+			processedItemsCount: 0
+		});
+	}
 
-  async getPerfumes(page: number) {
-    const data = await this.requestPerfumes(page);
-    const $ = cheerio.load(data['product_list_html']);
+	async scrapeOne(url: string) {
+		const perfumeData: UpsertPerfume = {
+			inventory: [],
+			website: WEBSITE_NAME
+		};
 
-    for (const product of $('.js-product')) {
-      const perfumeData: UpsertPerfume = {
-        inventory: []
-      };
+		await this.extractPerfumeDetails(url, perfumeData);
 
-      const productElement = $(product);
+		if (!perfumeData.perfume) {
+			await upsertUprocessedPerfume({
+				website: WEBSITE_NAME,
+				perfume_url: url
+			});
+		} else {
+			await upsertPerfume(perfumeData);
+		}
+	}
 
-      const detailsUrl = productElement.find('a.thumbnail').attr('href') || '';
+	async getPerfumes(page: number) {
+		const data = await this.requestPerfumes(page);
+		const $ = cheerio.load(data['product_list_html']);
 
-      await this.extractPerfumeDetails(detailsUrl, perfumeData);
+		for (const product of $('.js-product')) {
+			const productElement = $(product);
 
-      await upsertPerfume(perfumeData);
-    }
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-  }
+			const detailsUrl = productElement.find('a.thumbnail').attr('href') || '';
 
-  async getTotalPages(): Promise<any> {
-    const data = await this.requestPerfumes();
-    return Math.ceil(data.products_num / 20);
-  }
+			await this.scrapeOne(detailsUrl);
 
-  async extractPerfumeDetails(url: string, data: UpsertPerfume) {
-    try {
-      // Fetch the HTML content of the page
-      const response = await fetch(url);
-      const html = await response.text();
+			await this.jobObserver.assertJobNotAborted();
+			const jobData = await this.jobObserver.getLatestJobData();
+			jobData['processedItemsCount'] += 1;
+			await this.jobObserver.updateData(jobData);
 
-      // Load the HTML into cheerio
-      const $ = cheerio.load(html);
+			await new Promise((resolve) => setTimeout(resolve, 500));
+		}
+	}
 
-      const house = $('.product-name-manufacturer a').text().trim();
-      const name = $('.product-name-middle').text().trim();
-      const description = $('.product-name-type').text().trim();
-      const image_url =
-        $('.thumb.js-thumb.selected.js-thumb-selected').attr('data-image-medium-src') || '';
+	async getSearchInfo() {
+		const data = await this.requestPerfumes();
+		return {
+			totalItemsCount: data.products_num,
+			totalPages: Math.ceil(data.products_num / 20)
+		};
+	}
 
-      const { concentration, is_tester } = this.parseDescription(description);
+	async extractPerfumeDetails(url: string, data: UpsertPerfume) {
+		try {
+			// Fetch the HTML content of the page
+			const response = await fetch(url);
+			const html = await response.text();
 
-      let gender = $('.feature-group-11 .feature-value').text().trim();
-      gender = this.normalizeGender(gender);
+			// Load the HTML into cheerio
+			const $ = cheerio.load(html);
 
-      const perfume: NewPerfume = {
-        name,
-        house,
-        concentration,
-        gender,
-        image_url
-      };
+			const house = $('.product-name-manufacturer a').text().trim();
+			const name = $('.product-name-middle').text().trim();
+			const description = $('.product-name-type').text().trim();
+			const image_url =
+				$('.thumb.js-thumb.selected.js-thumb-selected').attr('data-image-medium-src') || '';
 
-      data.perfume = perfume;
+			let attributes;
+			try {
+				attributes = await parseDescription(description, WEBSITE_NAME);
+			} catch (error) {
+				console.error('Could not parse attributes for: ', description);
+				console.error(error);
+				await upsertUnprocessedDescription({
+					website: WEBSITE_NAME,
+					description
+				});
+				return;
+			}
 
-      const inventory: NewInventory[] = [];
-      $('#group_1 .input-container').each((_, element) => {
-        const availability = $(element).find('.variant-availability').text().trim();
+			if (!attributes) {
+				console.error('Could not parse attributes for: ', description);
+				await upsertUnprocessedDescription({
+					website: WEBSITE_NAME,
+					description
+				});
+				return;
+			}
 
-        if (availability === 'Изчерпан') return;
+			const { is_tester, concentration } = attributes;
 
-        // Leave only the number from the volume
-        const volume = $(element).find('.attr-name').text().trim().replace(/\D/g, '');
-        const price = $(element).find('.variant-price').text().trim().replace(/\D/g, '');
+			let gender = $('.feature-group-11 .feature-value').text().trim();
+			gender = this.normalizeGender(gender);
 
-        inventory.push({
-          volume: +volume,
-          price: +price / 100,
-          website: 'parfiumbg',
-          is_tester: is_tester ? 1 : 0,
-          url
-        });
-      });
+			const perfume: NewPerfume = {
+				name,
+				house,
+				concentration,
+				gender,
+				image_url
+			};
 
-      console.log(inventory);
-      data.inventory = inventory;
-    } catch (error) {
-      console.error('Error scraping product:', (error as Error).message);
-      return null;
-    }
-  }
+			data.perfume = perfume;
 
-  parseDescription(description: string) {
-    const attributes = descriptionAttributes[description];
-    if (!attributes) {
-      console.error('Unknown description:', description);
-      return { concentration: '', is_tester: false };
-    }
+			const inventory: NewInventory[] = [];
+			$('#group_1 .input-container').each((_, element) => {
+				const availability = $(element).find('.variant-availability').text().trim();
 
-    if (description.includes('без опаковка')) {
-      attributes.is_tester = true;
-    }
+				if (availability === 'Изчерпан') return;
 
-    return attributes;
-  }
+				// Leave only the number from the volume
+				const volume = $(element).find('.attr-name').text().trim().replace(/\D/g, '');
+				const price = $(element)
+					.find('.variant-price')
+					.text()
+					.split('лв.')[0]
+					.trim()
+					.replace(',', '');
 
-  normalizeGender(gender: string): string {
-    if (gender === 'Мъжки') {
-      return 'men';
-    }
-    if (gender === 'Дамски') {
-      return 'women';
-    }
-    if (gender === 'Унисекс') {
-      return 'unisex';
-    }
-    console.error('Unknown gender');
-    return 'unisex';
-  }
-  async requestPerfumes(page: number = 1) {
-    const url = 'https://parfium.bg/module/amazzingfilter/ajax?ajax=1';
+				inventory.push({
+					volume: +volume,
+					price: +price / 100,
+					website: WEBSITE_NAME,
+					is_tester,
+					url
+				});
+			});
 
-    const formData = new FormData();
-    formData.append('action', 'getFilteredProducts');
-    formData.append(
-      'params',
-      `page=${page}&` +
-      'id_category=11&id_manufacturer=0&id_supplier=0&nb_items=20&controller_product_ids=&current_controller=category&page_name=category&orderBy=sales&orderWay=desc'
-    );
+			console.log(inventory);
+			data.inventory = inventory;
+		} catch (error) {
+			console.error('Error scraping product:', (error as Error).message);
+			return null;
+		}
+	}
 
-    const response = await fetch(url, {
-      method: 'POST',
-      body: formData
-    });
+	normalizeGender(gender: string): string {
+		if (gender === 'Мъжки') {
+			return 'men';
+		}
+		if (gender === 'Дамски') {
+			return 'women';
+		}
+		if (gender === 'Унисекс') {
+			return 'unisex';
+		}
+		console.error('Unknown gender');
+		return 'unisex';
+	}
 
-    // Use text() to get the response as plain text
-    const data = await response.json();
-    data['product_list_html'] = this.utf8_decode(data['product_list_html']);
+	async requestPerfumes(page: number = 1) {
+		const url = 'https://parfium.bg/module/amazzingfilter/ajax?ajax=1';
 
-    return data;
-  }
+		const formData = new FormData();
+		formData.append('action', 'getFilteredProducts');
+		formData.append(
+			'params',
+			`page=${page}&` +
+				'id_category=11&id_manufacturer=0&id_supplier=0&nb_items=20&controller_product_ids=&current_controller=category&page_name=category&orderBy=sales&orderWay=desc'
+		);
 
-  utf8_decode(utfstr: string) {
-    var res = '';
-    for (var i = 0; i < utfstr.length;) {
-      var c = utfstr.charCodeAt(i);
-      if (c < 128) {
-        res += String.fromCharCode(c);
-        i++;
-      } else if (c > 191 && c < 224) {
-        var c1 = utfstr.charCodeAt(i + 1);
-        res += String.fromCharCode(((c & 31) << 6) | (c1 & 63));
-        i += 2;
-      } else {
-        var c1 = utfstr.charCodeAt(i + 1);
-        var c2 = utfstr.charCodeAt(i + 2);
-        res += String.fromCharCode(((c & 15) << 12) | ((c1 & 63) << 6) | (c2 & 63));
-        i += 3;
-      }
-    }
-    return res;
-  }
+		const response = await fetch(url, {
+			method: 'POST',
+			body: formData
+		});
+
+		// Use text() to get the response as plain text
+		const data = await response.json();
+		data['product_list_html'] = this.utf8_decode(data['product_list_html']);
+
+		return data;
+	}
+
+	utf8_decode(utfstr: string) {
+		var res = '';
+		for (var i = 0; i < utfstr.length; ) {
+			var c = utfstr.charCodeAt(i);
+			if (c < 128) {
+				res += String.fromCharCode(c);
+				i++;
+			} else if (c > 191 && c < 224) {
+				var c1 = utfstr.charCodeAt(i + 1);
+				res += String.fromCharCode(((c & 31) << 6) | (c1 & 63));
+				i += 2;
+			} else {
+				var c1 = utfstr.charCodeAt(i + 1);
+				var c2 = utfstr.charCodeAt(i + 2);
+				res += String.fromCharCode(((c & 15) << 12) | ((c1 & 63) << 6) | (c2 & 63));
+				i += 3;
+			}
+		}
+		return res;
+	}
 }

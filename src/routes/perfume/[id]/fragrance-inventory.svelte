@@ -2,6 +2,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Card, CardContent } from '$lib/components/ui/card';
 	import type { Perfume } from '$lib/server/db/schema';
+	import { toMoney } from '$lib/utils';
 	import ExternalIcon from '@lucide/svelte/icons/square-arrow-out-up-right';
 
 	let { inventory }: { inventory: Perfume['inventory'] } = $props();
@@ -25,7 +26,7 @@
 					</div>
 					<div class="flex flex-col sm:flex-row sm:gap-4">
 						<div class="flex flex-col">
-							<span class="text-xl font-semibold leading-tight">{item.price} лв.</span>
+							<span class="text-xl font-semibold leading-tight">{toMoney(item.price)}</span>
 							<span class="text-sm text-muted-foreground">{item.volume}мл</span>
 						</div>
 						<Button variant="secondary" href={item.url} target="_blank"

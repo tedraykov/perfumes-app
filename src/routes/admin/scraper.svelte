@@ -21,7 +21,9 @@
 	function inferStatus(job: Job | undefined) {
 		if (!job) return 'idle';
 
-		if (job.failedReason === '\"This job was aborted\"') {
+		if (job.finishedOn) return 'completed';
+
+		if (job.failedReason === '\"Job was aborted\"') {
 			return 'aborted';
 		}
 
@@ -31,7 +33,7 @@
 
 		if (job.attemptsMade === job.attemptsStarted) return 'waiting';
 
-		if (job.attemptsMade + 1 === job.attemptsStarted) return 'running';
+		if (job.attemptsMade + 1 + job.stalledCounter === job.attemptsStarted) return 'running';
 
 		return 'idle';
 	}
@@ -72,7 +74,7 @@
 				return 'destructive';
 			case 'aborted':
 				return 'destructive';
-			case 'success':
+			case 'completed':
 				return 'success';
 			case 'running':
 				return 'info';

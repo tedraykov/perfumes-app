@@ -1,8 +1,8 @@
 {
-  "id": "3ad8885f-3e40-4515-a443-edb8b629d19b",
-  "prevId": "34fadae7-1df1-4374-85cd-2b579c84714a",
   "version": "6",
   "dialect": "sqlite",
+  "id": "01aa7604-0744-4f3f-a636-a8591eb91202",
+  "prevId": "3ad8885f-3e40-4515-a443-edb8b629d19b",
   "tables": {
     "attributes_mappings": {
       "name": "attributes_mappings",
@@ -159,28 +159,28 @@
         "inventory_perfume_id_perfumes_id_fk": {
           "name": "inventory_perfume_id_perfumes_id_fk",
           "tableFrom": "inventory",
+          "tableTo": "perfumes",
           "columnsFrom": [
             "perfume_id"
           ],
-          "tableTo": "perfumes",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "inventory_website_websites_name_fk": {
           "name": "inventory_website_websites_name_fk",
           "tableFrom": "inventory",
+          "tableTo": "websites",
           "columnsFrom": [
             "website"
           ],
-          "tableTo": "websites",
           "columnsTo": [
             "name"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -241,28 +241,28 @@
         "perfume_notes_perfume_id_perfumes_id_fk": {
           "name": "perfume_notes_perfume_id_perfumes_id_fk",
           "tableFrom": "perfume_notes",
+          "tableTo": "perfumes",
           "columnsFrom": [
             "perfume_id"
           ],
-          "tableTo": "perfumes",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "perfume_notes_note_name_notes_name_fk": {
           "name": "perfume_notes_note_name_notes_name_fk",
           "tableFrom": "perfume_notes",
+          "tableTo": "notes",
           "columnsFrom": [
             "note_name"
           ],
-          "tableTo": "notes",
           "columnsTo": [
             "name"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
@@ -367,18 +367,114 @@
         "perfumes_house_houses_name_fk": {
           "name": "perfumes_house_houses_name_fk",
           "tableFrom": "perfumes",
+          "tableTo": "houses",
           "columnsFrom": [
             "house"
           ],
-          "tableTo": "houses",
           "columnsTo": [
             "name"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "unprocessed_descriptions": {
+      "name": "unprocessed_descriptions",
+      "columns": {
+        "website": {
+          "name": "website",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "unprocessed_descriptions_website_description_pk": {
+          "columns": [
+            "website",
+            "description"
+          ],
+          "name": "unprocessed_descriptions_website_description_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "unprocessed_gender": {
+      "name": "unprocessed_gender",
+      "columns": {
+        "website": {
+          "name": "website",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "gender": {
+          "name": "gender",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "unprocessed_gender_website_gender_pk": {
+          "columns": [
+            "website",
+            "gender"
+          ],
+          "name": "unprocessed_gender_website_gender_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "unprocessed_perfumes": {
+      "name": "unprocessed_perfumes",
+      "columns": {
+        "website": {
+          "name": "website",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "perfume_url": {
+          "name": "perfume_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "unprocessed_perfumes_website_perfume_url_pk": {
+          "columns": [
+            "website",
+            "perfume_url"
+          ],
+          "name": "unprocessed_perfumes_website_perfume_url_pk"
+        }
+      },
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
@@ -417,9 +513,9 @@
   "views": {},
   "enums": {},
   "_meta": {
-    "columns": {},
     "schemas": {},
-    "tables": {}
+    "tables": {},
+    "columns": {}
   },
   "internal": {
     "indexes": {}

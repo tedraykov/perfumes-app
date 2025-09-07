@@ -71,6 +71,6 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background/30 bg-[url(https://arc.net/noise-light.png)] text-foreground bg-blend-difference;
   }
 }

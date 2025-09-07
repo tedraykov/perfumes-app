@@ -1,139 +1,170 @@
 import { relations, type InferInsertModel, type InferSelectModel } from 'drizzle-orm';
 import {
-  primaryKey,
-  sqliteTable,
-  text,
-  integer,
-  real,
-  index,
-  unique
+	primaryKey,
+	sqliteTable,
+	text,
+	integer,
+	real,
+	index,
+	unique
 } from 'drizzle-orm/sqlite-core';
 
 export enum NoteType {
-  Base = 'Base',
-  Middle = 'Middle',
-  Top = 'Top'
+	Base = 'Base',
+	Middle = 'Middle',
+	Top = 'Top'
 }
 export enum Concentration {
-  EDT = 'EDT',
-  EDP = 'EDP',
-  EDC = 'EDC',
-  Perfume = 'Perfume',
-  Extrait = 'Extrait',
-  Oil = 'Oil'
+	EDT = 'EDT',
+	EDP = 'EDP',
+	EDC = 'EDC',
+	Perfume = 'Perfume',
+	Extrait = 'Extrait',
+	Oil = 'Oil'
 }
 
 // --- Tables ---
 export const notes = sqliteTable('notes', {
-  name: text('name').primaryKey(),
-  image_url: text('image_url')
+	name: text('name').primaryKey(),
+	image_url: text('image_url')
 });
 
 export const houses = sqliteTable('houses', {
-  name: text('name').primaryKey(),
-  image_url: text('image_url')
+	name: text('name').primaryKey(),
+	image_url: text('image_url')
 });
 
 export type Perfume = InferSelectModel<typeof perfumes> & {
-  inventory?: Inventory[];
-  notes?: PerfumeNote[];
+	inventory?: Inventory[];
+	notes?: PerfumeNote[];
 };
 export type NewPerfume = InferInsertModel<typeof perfumes>;
 
 export const perfumes = sqliteTable(
-  'perfumes',
-  {
-    id: integer('id').primaryKey({ autoIncrement: true }),
-    name: text('name').notNull(),
-    house: text('house')
-      .references(() => houses.name)
-      .notNull(),
-    image_url: text('image_url'),
-    fragrantica_url: text('fragrantica_url'),
-    fragrantica_name: text('fragrantica_name'),
-    gender: text('gender').notNull(),
-    concentration: text('concentration').notNull()
-  },
-  (table) => [
-    unique().on(table.name, table.house, table.gender, table.concentration),
-    index('perfume_name_idx').on(table.name),
-    index('perfume_house_idx').on(table.house)
-  ]
+	'perfumes',
+	{
+		id: integer('id').primaryKey({ autoIncrement: true }),
+		name: text('name').notNull(),
+		house: text('house')
+			.references(() => houses.name)
+			.notNull(),
+		image_url: text('image_url'),
+		fragrantica_url: text('fragrantica_url'),
+		fragrantica_name: text('fragrantica_name'),
+		gender: text('gender').notNull(),
+		concentration: text('concentration').notNull()
+	},
+	(table) => [
+		unique().on(table.name, table.house, table.gender, table.concentration),
+		index('perfume_name_idx').on(table.name),
+		index('perfume_house_idx').on(table.house)
+	]
 );
 
 export type Note = InferSelectModel<typeof notes>;
 export type PerfumeNote = InferSelectModel<typeof perfume_notes> & {
-  note: Note;
+	note: Note;
 };
 
 export const perfume_notes = sqliteTable(
-  'perfume_notes',
-  {
-    perfume_id: integer('perfume_id').references(() => perfumes.id),
-    note_name: text('note_name').references(() => notes.name),
-    note_type: text('note_type')
-  },
-  (t) => [primaryKey({ columns: [t.perfume_id, t.note_name] })]
+	'perfume_notes',
+	{
+		perfume_id: integer('perfume_id').references(() => perfumes.id),
+		note_name: text('note_name').references(() => notes.name),
+		note_type: text('note_type')
+	},
+	(t) => [primaryKey({ columns: [t.perfume_id, t.note_name] })]
 );
 
 export type Website = InferSelectModel<typeof websites>;
 
 export const websites = sqliteTable('websites', {
-  name: text('name').primaryKey(),
-  address: text('address').notNull(),
-  logo: text('logo').notNull()
+	name: text('name').primaryKey(),
+	address: text('address').notNull(),
+	logo: text('logo').notNull()
 });
 
 export type Inventory = Omit<InferSelectModel<typeof inventory>, 'website'> & {
-  website?: Website;
+	website?: Website;
 };
 
 export type NewInventory = InferInsertModel<typeof inventory>;
 export const inventory = sqliteTable(
-  'inventory',
-  {
-    id: integer('id').primaryKey({ autoIncrement: true }),
-    perfume_id: integer('perfume_id').references(() => perfumes.id),
-    volume: integer('volume').notNull(),
-    is_tester: integer('is_tester'),
-    price: real('price').notNull(),
-    website: text('website').references(() => websites.name),
-    url: text('url')
-  },
-  (table) => [unique().on(table.perfume_id, table.volume, table.is_tester, table.website)]
+	'inventory',
+	{
+		id: integer('id').primaryKey({ autoIncrement: true }),
+		perfume_id: integer('perfume_id').references(() => perfumes.id),
+		volume: integer('volume').notNull(),
+		is_tester: integer('is_tester'),
+		price: real('price').notNull(),
+		website: text('website').references(() => websites.name),
+		url: text('url')
+	},
+	(table) => [unique().on(table.perfume_id, table.volume, table.is_tester, table.website)]
 );
 
 export type AttributesMapping = InferSelectModel<typeof attributes_mapping>;
 export const attributes_mapping = sqliteTable(
-  'attributes_mappings',
-  {
-    website: text('website').notNull(),
-    description: text('description').notNull(),
-    concentration: text('concentration').notNull(),
-    gender: text('gender').notNull(),
-    is_tester: integer('is_tester').notNull().default(0),
-    is_set: integer('is_set').notNull().default(0)
-  },
-  (table) => [primaryKey({ columns: [table.website, table.description] })]
+	'attributes_mappings',
+	{
+		website: text('website').notNull(),
+		description: text('description').notNull(),
+		concentration: text('concentration').notNull(),
+		gender: text('gender').notNull(),
+		is_tester: integer('is_tester').notNull().default(0),
+		is_set: integer('is_set').notNull().default(0)
+	},
+	(table) => [primaryKey({ columns: [table.website, table.description] })]
+);
+
+export type NewUnprocessedPerfume = InferInsertModel<typeof unprocessed_perfumes>;
+
+export const unprocessed_perfumes = sqliteTable(
+	'unprocessed_perfumes',
+	{
+		website: text('website').notNull(),
+		perfume_url: text('perfume_url').notNull()
+	},
+	(table) => [primaryKey({ columns: [table.website, table.perfume_url] })]
+);
+
+export type NewUnprocessedDescription = InferInsertModel<typeof unprocessed_descriptions>;
+
+export const unprocessed_descriptions = sqliteTable(
+	'unprocessed_descriptions',
+	{
+		website: text('website').notNull(),
+		description: text('description').notNull()
+	},
+	(table) => [primaryKey({ columns: [table.website, table.description] })]
+);
+
+export const unprocessed_gender = sqliteTable(
+	'unprocessed_gender',
+	{
+		website: text('website').notNull(),
+		gender: text('gender').notNull()
+	},
+	(table) => [primaryKey({ columns: [table.website, table.gender] })]
 );
 
 export const perfumeRelations = relations(perfumes, ({ many }) => ({
-  notes: many(perfume_notes),
-  inventory: many(inventory)
+	notes: many(perfume_notes),
+	inventory: many(inventory)
 }));
 
 export const inventoryRelations = relations(inventory, ({ one }) => ({
-  perfume: one(perfumes, { fields: [inventory.perfume_id], references: [perfumes.id] }),
-  website: one(websites, { fields: [inventory.website], references: [websites.name] })
+	perfume: one(perfumes, { fields: [inventory.perfume_id], references: [perfumes.id] }),
+	website: one(websites, { fields: [inventory.website], references: [websites.name] })
 }));
 
 export const perfumeNoteRelations = relations(perfume_notes, ({ one }) => ({
-  perfume: one(perfumes, {
-    fields: [perfume_notes.perfume_id],
-    references: [perfumes.id]
-  }),
-  note: one(notes, {
-    fields: [perfume_notes.note_name],
-    references: [notes.name]
-  })
+	perfume: one(perfumes, {
+		fields: [perfume_notes.perfume_id],
+		references: [perfumes.id]
+	}),
+	note: one(notes, {
+		fields: [perfume_notes.note_name],
+		references: [notes.name]
+	})
 }));

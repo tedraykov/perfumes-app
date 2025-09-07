@@ -11,8 +11,7 @@
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./jsconfig.json --watch",
 		"format": "prettier --write .",
 		"lint": "prettier --check . && eslint .",
-		"test:unit": "vitest",
-		"test": "npm run test:unit -- --run",
+		"test": "vitest --config vitest.config.js",
 		"db:push": "drizzle-kit push",
 		"db:migrate": "drizzle-kit migrate",
 		"db:studio": "drizzle-kit studio"
@@ -30,6 +29,7 @@
 		"autoprefixer": "^10.4.21",
 		"bits-ui": "^1.8.0",
 		"clsx": "^2.1.1",
+		"dotenv": "^17.2.1",
 		"drizzle-kit": "^0.30.6",
 		"drizzle-seed": "^0.3.1",
 		"eslint": "^9.31.0",

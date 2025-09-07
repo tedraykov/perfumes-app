@@ -1,126 +1,82 @@
-import { upsertPerfume, type UpsertPerfume } from '$lib/server/db';
+import {
+	upsertPerfume,
+	upsertUnprocessedDescription,
+	upsertUprocessedPerfume,
+	type UpsertPerfume
+} from '$lib/server/db';
 import { parseDescription } from '$lib/server/db/attributes-mapping';
-import type { NewInventory, NewPerfume } from '$lib/server/db/schema';
-import type { Queue } from 'bullmq';
-import type { Job } from 'bullmq';
+import type { JobObserver } from '$lib/server/queue';
 import * as cheerio from 'cheerio';
 
-async function requestElinorPerfumes(page: number = 1) {
-	const url = 'https://elinor.bg/product-list?skipOrderInit=1&skipCountryInit=1';
-
-	const formData = new FormData();
-	formData.append('productCategoryId', '56');
-	formData.append('filterParams[minPrice]', '0');
-	formData.append('filterParams[maxPrice]', '1370');
-	formData.append('orderBy', 'id-desc');
-	formData.append('perPage', '80');
-	formData.append('page', String(page));
-
-	const response = await fetch(url, {
-		method: 'POST',
-		body: formData
-	});
-
-	return response.json();
-}
-
-async function getPerfumeInventory(url: string) {
-	const fullUrl = `https://elinor.bg${url}`;
-	const response = await fetch(fullUrl);
-	console.log('Perfume inventory url:', fullUrl);
-	const html = await response.text();
-
-	const $ = cheerio.load(html);
-
-	const products: NewInventory[] = [];
-
-	$('.orderable-product').each((_, element) => {
-		const volumeText = $(element).find('.volume').text().trim().replace('ml', '');
-		const priceText = $(element)
-			.find('.regular-price')
-			.text()
-			.trim()
-			.replace('лв.', '')
-			.replace(',', '.');
-
-		const volume = parseFloat(volumeText);
-		const price = parseFloat(priceText);
-
-		if (volume && price) {
-			products.push({ volume, price, website: 'elinor', is_tester: 0, url: fullUrl });
-		}
-	});
-	await new Promise((resolve) => setTimeout(resolve, 200));
-	return products;
-}
+export const WEBSITE_NAME = 'elinor';
 
 export class ElinorScraper {
 	totalPages = 0;
 	totalItemsCount = 0;
 	allHouses: string[] = [];
-	job: Job<any, any, string>;
-	queue: Queue;
+	jobObserver: JobObserver;
+	baseUrl = 'https://elinor.bg';
 
-	constructor(queue: Queue, job: Job) {
-		this.queue = queue;
-		this.job = job;
+	constructor(jobObserver: JobObserver) {
+		this.jobObserver = jobObserver;
 	}
 
 	async scrape() {
-		const { totalPages, totalItemsCount } = await this.getSearchInfo();
-		this.totalItemsCount = totalItemsCount;
-		this.totalPages = totalPages;
 		this.initJobData();
 
-		this.allHouses = await this.getAllHouses();
-
-		await this.scrapeAllPerfumes();
-	}
-
-	async initJobData() {
-		const initJobData = (await this.getLatestJobData()) || {};
-
-		initJobData['totalItemsCount'] = this.totalItemsCount;
-		initJobData['processedItemsCount'] = 0;
-		await this.job.updateData(initJobData);
-	}
-
-	async getLatestJobData() {
-		if (!this.job.id) {
-			throw new Error('Job is missing');
-		}
-		const latestJob: Job = await this.queue.getJob(this.job.id);
-
-		return latestJob.data;
-	}
-
-	async scrapeAllPerfumes() {
+		console.log(`Fetching ${this.totalPages} pages`);
 		for (let page = 1; page <= this.totalPages; page++) {
-			this.job.updateProgress((page / this.totalPages) * 100);
+			this.jobObserver.updateProgress((page / this.totalPages) * 100);
 
 			await this.getPerfumes(page);
 
 			await new Promise((resolve) => setTimeout(resolve, 500));
 		}
 	}
+
+	async initJobData() {
+		const { totalPages, totalItemsCount, allHouses } = await this.getSearchInfo();
+		this.totalItemsCount = totalItemsCount;
+		this.totalPages = totalPages;
+		this.allHouses = allHouses;
+
+		await this.jobObserver.updateData({
+			totalItemsCount: this.totalItemsCount,
+			processedItemsCount: 0
+		});
+	}
+
 	async getSearchInfo() {
-		const data = await requestElinorPerfumes(1);
+		const data = await this.requestElinorPerfumes(1);
+		const houseFilter = data.filter['1'];
 
 		return {
 			totalItemsCount: data.totalItemsCount,
-			totalPages: Math.floor(data.totalItemsCount / 80)
+			totalPages: Math.floor(data.totalItemsCount / 80),
+			allHouses: houseFilter.options.map(({ label }: { label: string }) => label)
 		};
 	}
 
-	async getAllHouses() {
-		const data = await requestElinorPerfumes();
-		const houseFilter = data.filter['1'];
+	async scrapeOne(url: string) {
+		const perfumeData: UpsertPerfume = {
+			inventory: [],
+			website: WEBSITE_NAME
+		};
 
-		return houseFilter.options.map(({ label }: { label: string }) => label);
+		await this.extractPerfumeDetails(url, perfumeData);
+
+		if (!perfumeData.perfume) {
+			await upsertUprocessedPerfume({
+				website: WEBSITE_NAME,
+				perfume_url: url
+			});
+		} else {
+			await upsertPerfume(perfumeData);
+		}
 	}
 
 	async getPerfumes(page: number): Promise<UpsertPerfume[]> {
-		const data = await requestElinorPerfumes(page);
+		const data = await this.requestElinorPerfumes(page);
 
 		const $ = cheerio.load(data.listItems);
 		const perfumes: UpsertPerfume[] = [];
@@ -128,32 +84,6 @@ export class ElinorScraper {
 		// Extract perfume details
 		for (const product of $('.product-list-item')) {
 			const element = $(product);
-
-			const nameAndHouse = element.find('.product-list-item-name').text().trim();
-			const { name, house } = this.parseNameAndHouse(nameAndHouse);
-			const description = element.find('.product-list-item-description').text().trim();
-
-			let attributes;
-			try {
-				attributes = await parseDescription(description, 'elinor');
-			} catch (error) {
-				console.error('Could not parse attributes for: ', description);
-				continue;
-			}
-
-			if (!attributes) {
-				console.error('Could not parse attributes for: ', description);
-				continue;
-			}
-
-			const { is_set, is_tester, concentration, gender } = attributes;
-
-			// Ignore sets
-			if (is_set) {
-				continue;
-			}
-
-			const imageUrl = element.find('.product-list-item-image').attr('data-first-src') || null;
 			const link = element.find('.product-list-item-link').attr('href');
 
 			if (!link) {
@@ -161,30 +91,111 @@ export class ElinorScraper {
 				continue;
 			}
 
-			const inventory = await getPerfumeInventory(link);
+			await this.scrapeOne(link);
 
-			inventory.forEach((item) => (item.is_tester = is_tester));
-
-			const perfume: NewPerfume = {
-				name,
-				image_url: `https://elinor.bg${imageUrl}`,
-				house,
-				concentration,
-				gender
-			};
-
-			await upsertPerfume({ perfume, inventory });
-
-			const jobData = (await this.getLatestJobData()) || {};
-			if (jobData['aborted']) {
-				throw new Error('This job was aborted');
-			}
+			this.jobObserver.assertJobNotAborted();
+			const jobData = await this.jobObserver.getLatestJobData();
 			jobData['processedItemsCount'] += 1;
-			this.job.updateData(jobData);
+			this.jobObserver.updateData(jobData);
+			await new Promise((resolve) => setTimeout(resolve, 500));
 		}
 		return perfumes;
 	}
 
+	async extractPerfumeDetails(url: string, perfumeData: UpsertPerfume) {
+		const fullUrl = `${this.baseUrl}${url}`;
+		const response = await fetch(fullUrl);
+		console.log('Perfume inventory url:', fullUrl);
+		const html = await response.text();
+
+		const $ = cheerio.load(html);
+
+		const houseAndName = $('.top-section .title').text();
+		const { house, name } = this.parseNameAndHouse(houseAndName);
+		const description = $('.top-section .subtitle').text();
+		const imagePath = $('.product-gallery-main-image').attr('src');
+		const imageUrl = `${this.baseUrl}${imagePath}`;
+
+		let attributes;
+		try {
+			attributes = await parseDescription(description, WEBSITE_NAME);
+		} catch (error) {
+			console.error('Could not parse attributes for: ', description);
+			console.error(error);
+			await upsertUnprocessedDescription({
+				website: WEBSITE_NAME,
+				description
+			});
+			return;
+		}
+
+		if (!attributes) {
+			console.error('Could not parse attributes for: ', description);
+			await upsertUnprocessedDescription({
+				website: WEBSITE_NAME,
+				description
+			});
+			return;
+		}
+
+		const { gender, concentration, is_tester, is_set } = attributes;
+
+		if (is_set) return;
+
+		perfumeData.perfume = {
+			name,
+			house,
+			gender,
+			concentration,
+			image_url: imageUrl
+		};
+
+		$('.orderable-product').each((_, element) => {
+			const volumeText = $(element).find('.volume').text().trim().replace('ml', '');
+			const regularPrice =
+				$(element).find('.regular-price').text().split('лв.').at(0)?.trim().replace('.', '') || 0;
+			const promoPrice = $(element)
+				.find('.promo-price')
+				.text()
+				.split('лв.')
+				.at(0)
+				?.trim()
+				.replace('.', '');
+
+			const volume = +volumeText;
+			const price = (promoPrice ? +promoPrice : +regularPrice) / 100;
+			const available = $(element).find('.info-delivery-text').text().includes('Наличен');
+
+			if (volume && price && available) {
+				perfumeData.inventory.push({
+					volume,
+					price,
+					website: WEBSITE_NAME,
+					is_tester,
+					url: fullUrl
+				});
+			}
+		});
+	}
+
+	async requestElinorPerfumes(page: number = 1) {
+		const url = 'https://elinor.bg/product-list?skipOrderInit=1&skipCountryInit=1';
+
+		const formData = new FormData();
+		formData.append('productCategoryId', '56');
+		formData.append('filterParams[minPrice]', '0');
+		formData.append('filterParams[maxPrice]', '1370');
+		formData.append('orderBy', 'id-desc');
+		formData.append('perPage', '80');
+		formData.append('page', String(page));
+
+		const response = await fetch(url, {
+			method: 'POST',
+			body: formData
+		});
+
+		return response.json();
+	}
 	/**
 	 * The full name of an elinor perfume starts with the house name followed by the perfume name
 	 * separated by a space. This function extracts the house name and the perfume name from the full name

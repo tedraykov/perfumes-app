@@ -9,7 +9,7 @@
 	let { children, data } = $props();
 </script>
 
-<Navbar user={data.user} />
+<Navbar user={undefined} />
 <main class="container py-8">
 	{@render children()}
 </main>
