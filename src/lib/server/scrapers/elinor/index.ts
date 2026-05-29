@@ -7,8 +7,11 @@ import {
 import { parseDescription } from '$lib/server/db/attributes-mapping';
 import type { JobObserver } from '$lib/server/queue';
 import * as cheerio from 'cheerio';
+import logger from '$lib/server/logger';
 
 export const WEBSITE_NAME = 'elinor';
+
+const log = logger.child({ scraper: WEBSITE_NAME });
 
 export class ElinorScraper {
 	totalPages = 0;
@@ -22,9 +25,9 @@ export class ElinorScraper {
 	}
 
 	async scrape() {
-		this.initJobData();
+		await this.initJobData();
 
-		console.log(`Fetching ${this.totalPages} pages`);
+		log.info(`Fetching ${this.totalPages} pages`);
 		for (let page = 1; page <= this.totalPages; page++) {
 			this.jobObserver.updateProgress((page / this.totalPages) * 100);
 
@@ -87,7 +90,7 @@ export class ElinorScraper {
 			const link = element.find('.product-list-item-link').attr('href');
 
 			if (!link) {
-				console.error('No link found for:', name);
+				log.error({ name }, 'No link found for product');
 				continue;
 			}
 
@@ -105,7 +108,7 @@ export class ElinorScraper {
 	async extractPerfumeDetails(url: string, perfumeData: UpsertPerfume) {
 		const fullUrl = `${this.baseUrl}${url}`;
 		const response = await fetch(fullUrl);
-		console.log('Perfume inventory url:', fullUrl);
+		log.info({ url: fullUrl }, 'Fetching perfume inventory');
 		const html = await response.text();
 
 		const $ = cheerio.load(html);
@@ -120,8 +123,7 @@ export class ElinorScraper {
 		try {
 			attributes = await parseDescription(description, WEBSITE_NAME);
 		} catch (error) {
-			console.error('Could not parse attributes for: ', description);
-			console.error(error);
+			log.error({ err: error, description }, 'Could not parse attributes');
 			await upsertUnprocessedDescription({
 				website: WEBSITE_NAME,
 				description
@@ -130,7 +132,7 @@ export class ElinorScraper {
 		}
 
 		if (!attributes) {
-			console.error('Could not parse attributes for: ', description);
+			log.error({ description }, 'Could not parse attributes');
 			await upsertUnprocessedDescription({
 				website: WEBSITE_NAME,
 				description
@@ -163,7 +165,8 @@ export class ElinorScraper {
 				.replace('.', '');
 
 			const volume = +volumeText;
-			const price = (promoPrice ? +promoPrice : +regularPrice) / 100;
+			const bgnPrice = (promoPrice ? +promoPrice : +regularPrice) / 100;
+			const price = bgnPrice / 1.95583;
 			const available = $(element).find('.info-delivery-text').text().includes('Наличен');
 
 			if (volume && price && available) {
@@ -203,7 +206,7 @@ export class ElinorScraper {
 	parseNameAndHouse(nameAndHouse: string): { name: string; house: string } {
 		const house = this.allHouses.find((house) => nameAndHouse.startsWith(house));
 		if (!house) {
-			console.error('No house found for:', nameAndHouse);
+			log.error({ nameAndHouse }, 'No house found for perfume');
 			return { name: nameAndHouse, house: '' };
 		}
 		const name = nameAndHouse.replace(house, '').trim();

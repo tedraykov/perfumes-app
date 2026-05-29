@@ -45,7 +45,7 @@ describe('Elinor Scraper', () => {
 			inventory: [
 				{
 					volume: 100,
-					price: 182,
+					price: 168,
 					is_tester: 0,
 					url,
 					website: WEBSITE_NAME

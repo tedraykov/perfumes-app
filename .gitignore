@@ -20,4 +20,10 @@ Thumbs.db
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
-*.db
+perfumes.db
+
+# Logs
+logs/
+
+# Cached Algolia key (auto-refreshed at runtime)
+.algolia-key.json

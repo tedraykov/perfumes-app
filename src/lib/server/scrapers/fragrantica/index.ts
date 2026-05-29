@@ -2,30 +2,35 @@ import { db } from '$lib/server/db';
 import { perfumes as perfumesSchema, type Perfume } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
 import { FragranticaClient } from './client';
+import logger from '$lib/server/logger';
+export { scrapeFragranticaPage } from './scraper';
+export type { ScrapedNote, FragranticaPageData } from './scraper';
+
+const log = logger.child({ scraper: 'fragrantica' });
 
 /**
  * Get all perfumes from the database that don't have a fragrantica URL
  * and try to link them
  */
-export default async function linkPerfumes() {
+export async function linkPerfumes() {
   // Get all perfumes that don't have a fragrantica URL
   const perfumes = await db.query.perfumes.findMany({
     where: (perfume, { isNull }) => isNull(perfume.fragrantica_url)
   });
 
   if (!perfumes) {
-    console.warn('No perfumes found');
+    log.warn('No perfumes found');
     return;
   }
 
-  console.log(`Linking ${perfumes.length} perfumes`);
+  log.info({ count: perfumes.length }, 'Linking perfumes');
 
   for (const perfume of perfumes) {
     const client = new FragranticaClient();
     const data = await client.searchFragrance(`${perfume.name} ${perfume.house}`);
 
     if (!data) {
-      console.warn('No data found for:', perfume);
+      log.warn({ perfume }, 'No data found for perfume');
       continue;
     }
 
@@ -43,3 +48,5 @@ export default async function linkPerfumes() {
     await new Promise((resolve) => setTimeout(resolve, 200));
   }
 }
+
+export async function linkPerfume(id: number) { }

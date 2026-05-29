@@ -1,19 +1,23 @@
+import logger from '$lib/server/logger';
+import { getAlgoliaKey } from './api-key';
+
+const log = logger.child({ scraper: 'fragrantica', module: 'client' });
+
 export class FragranticaClient {
   baseUrl = 'https://fgvi612dfz-dsn.algolia.net';
 
-  headers = {
-    Host: 'fgvi612dfz-dsn.algolia.net',
-    Origin: 'https://www.fragrantica.com',
-    Referer: 'https://www.fragrantica.com/'
-  };
-
   async searchFragrance(query: string) {
+    const apiKey = await getAlgoliaKey();
     const apiEndpoint = '/1/indexes/*/queries';
     const queryParams = {
       'x-algolia-agent': 'Algolia for JavaScript (4.24.0); Browser (lite)',
-      'x-algolia-api-key':
-        'MTI2NzBhZjQwN2M0MTQ3NzVkZmJlZjU3MmJjNmFkNGE5NjQwMTY0MWMwZDJkM2RiOWY4NDI1ODQxOTE2YmVkYXZhbGlkVW50aWw9MTc1NDE0NjYyOA==',
+      'x-algolia-api-key': apiKey,
       'x-algolia-application-id': 'FGVI612DFZ'
+    };
+    const headers = {
+      Host: 'fgvi612dfz-dsn.algolia.net',
+      Origin: 'https://www.fragrantica.com',
+      Referer: 'https://www.fragrantica.com/'
     };
 
     const url = new URL(this.baseUrl + apiEndpoint);
@@ -25,22 +29,26 @@ export class FragranticaClient {
 
     const response = await fetch(url, {
       method: 'POST',
-      headers: this.headers,
+      headers,
       body: JSON.stringify(body)
     });
 
-    // example response:
     const data = await response.json();
 
-    if (!data || !data.results || !data.results[0].hits) {
-      console.warn('No results found for query:', query);
+    if (!response.ok) {
+      log.error({ status: response.status, data }, 'Algolia API error');
+      return null;
+    }
+
+    if (!data?.results?.[0]?.hits?.length) {
+      log.warn({ query }, 'No results found for query');
       return null;
     }
     const [hit] = data.results[0].hits;
 
-    console.log(hit);
+    log.info({ hit }, 'Fragrantica search result');
     if (!hit) {
-      console.warn('No results found for query:', query);
+      log.warn({ query }, 'No results found for query');
       return null;
     }
 
@@ -48,7 +56,7 @@ export class FragranticaClient {
       name: hit.naslov,
       house: hit.dizajner,
       image: hit.picture,
-      fragrantica_url: hit.url['EN'][0]
+      fragrantica_url: `https://www.fragrantica.com/perfume/${hit.slug}-${hit.objectID}.html`
     };
   }
 }

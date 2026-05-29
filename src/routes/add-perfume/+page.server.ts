@@ -2,6 +2,9 @@ import { db } from '$lib/server/db';
 import { perfumes, type NewPerfume } from '$lib/server/db/schema';
 import { fail } from '@sveltejs/kit';
 import * as cheerio from 'cheerio';
+import logger from '$lib/server/logger';
+
+const log = logger.child({ module: 'add-perfume' });
 
 async function parseFragranticaLink(url: string): Promise<NewPerfume | undefined> {
   try {
@@ -35,7 +38,7 @@ async function parseFragranticaLink(url: string): Promise<NewPerfume | undefined
       concentration: 'EDT'
     };
   } catch (error) {
-    console.error('Error scraping Fragrantica:', (error as Error).message);
+    log.error({ err: error }, 'Error scraping Fragrantica');
   }
 
   return undefined;
@@ -83,7 +86,7 @@ export const actions = {
 
       return { success: true, data: perfume };
     } catch (error) {
-      console.error('Error adding perfume:', error);
+      log.error({ err: error }, 'Error adding perfume');
       return fail(500, { success: false, message: 'Failed to add perfume. Please try again.' });
     }
   }

@@ -1,0 +1,1 @@
+ALTER TABLE `perfumes` ADD `updatedAt` text DEFAULT (CURRENT_TIMESTAMP);

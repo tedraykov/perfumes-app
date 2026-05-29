@@ -6,11 +6,10 @@ dotenv.config({ path: path.resolve(__dirname, '.env') });
 
 export default defineConfig({
 	test: {
-		name: 'unit',
+		name: 'integration',
 		environment: 'node',
-		include: ['src/**/*.{test,spec}.{js,ts}'],
-		exclude: ['src/**/*.integration.test.{js,ts}'],
-		testTimeout: 10000
+		include: ['src/**/*.integration.test.{js,ts}'],
+		testTimeout: 120000
 	},
 	resolve: {
 		alias: {

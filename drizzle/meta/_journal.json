@@ -22,6 +22,20 @@
       "when": 1753981774482,
       "tag": "0002_wealthy_carmella_unuscione",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1758476841904,
+      "tag": "0003_same_carnage",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1758563200000,
+      "tag": "0004_add_description",
+      "breakpoints": true
     }
   ]
 }

@@ -1,9 +1,9 @@
 import type { PageServerLoad } from './$types';
 import { queue } from '$lib/server/queue';
-import linkPerfumes from '$lib/server/scrapers/fragrantica/link-perfume';
 import type { Actions } from './$types';
 import type { Job } from 'bullmq';
 import { fail } from '@sveltejs/kit';
+import { linkPerfumes } from '$lib/server/scrapers/fragrantica';
 
 export type GroupedJobs = Record<string, Job[]>;
 

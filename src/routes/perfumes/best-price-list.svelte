@@ -1,44 +1,55 @@
 <script lang="ts">
-	import { Separator } from '$lib/components/ui/separator';
-	import type { PerfumeWithInventory, InventoryWithWebsite } from '$lib/server/db/schema';
+	import type { Perfume } from '$lib/server/db/schema';
 	import { toMoney } from '$lib/utils';
 
-	let { perfume }: { perfume: PerfumeWithInventory } = $props();
+	let { perfume }: { perfume: Perfume } = $props();
 
-	function deriveBestPricePerVolume(perfume: PerfumeWithInventory) {
-		const bestPricePerVolume: { [volume: number]: InventoryWithWebsite } = {};
-		for (const inventory of perfume.inventory) {
-			if (!inventory.volume || !inventory.price) continue;
-
-			if (
-				!bestPricePerVolume[inventory.volume] ||
-				(bestPricePerVolume[inventory.volume].price || Infinity) > inventory.price
-			) {
-				bestPricePerVolume[inventory.volume] = inventory;
+	function bestPricePerVolume(perfume: Perfume) {
+		const best: Record<number, (typeof perfume.inventory)[0]> = {};
+		for (const inv of perfume.inventory ?? []) {
+			if (!inv.volume || !inv.price) continue;
+			if (!best[inv.volume] || (best[inv.volume].price ?? Infinity) > inv.price) {
+				best[inv.volume] = inv;
 			}
 		}
-		return Object.values(bestPricePerVolume);
+		return Object.values(best);
 	}
 </script>
 
-<ul class="flex flex-col gap-2">
-	{#each deriveBestPricePerVolume(perfume) as inventory}
-		<Separator />
-		<li>
-			<div class="flex items-center gap-1 text-sm">
-				<span>{inventory.volume} мл.</span>
-				<span>от</span>
-				<strong>{toMoney(inventory.price)}</strong>
-				<div class="flex flex-1 justify-end">
-					{#if inventory.website}
-						<img
-							src={inventory.website.logo}
-							alt={inventory.website.name}
-							class="h-10 object-contain"
-						/>
-					{/if}
-				</div>
-			</div>
+<ul class="price-list">
+	{#each bestPricePerVolume(perfume) as inv}
+		<li class="price-item">
+			<span class="volume">{inv.volume} мл</span>
+			<span class="from">от</span>
+			<strong class="price">{toMoney(inv.price)}</strong>
 		</li>
 	{/each}
 </ul>
+
+<style>
+	.price-list {
+		list-style: none;
+		padding: 0;
+		margin: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
+
+	.price-item {
+		display: flex;
+		align-items: baseline;
+		gap: 6px;
+		font-family: 'JetBrains Mono', monospace;
+		font-size: 12px;
+		color: var(--mute);
+	}
+
+	.price {
+		font-family: 'Cormorant Garamond', serif;
+		font-size: 18px;
+		font-variant-numeric: tabular-nums;
+		color: var(--ink);
+		font-weight: normal;
+	}
+</style>

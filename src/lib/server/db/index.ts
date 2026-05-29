@@ -4,6 +4,9 @@ import * as schema from './schema';
 import { env } from '$env/dynamic/private';
 import { and, sql } from 'drizzle-orm';
 import { eq } from 'drizzle-orm';
+import logger from '$lib/server/logger';
+
+const log = logger.child({ module: 'db' });
 
 if (!env.DATABASE_URL) throw new Error('DATABASE_URL is not set');
 
@@ -23,15 +26,14 @@ export async function upsertPerfume({ perfume, inventory, website }: UpsertPerfu
 	}
 
 	if (inventory.length === 0) {
-		console.warn('Perfume does not inventory');
-		console.log(perfume);
+		log.warn({ perfume }, 'Perfume has no inventory, skipping');
 		return;
 	}
 
 	// 1) Make sure the House exists (insert or do nothing)
 	await db.insert(schema.houses).values({ name: perfume.house }).onConflictDoNothing().execute();
 
-	console.log(perfume);
+	log.info({ perfume }, 'Upserting perfume');
 	// 2) Now upsert the Perfume, knowing the house is there
 	const [upserted] = await db
 		.insert(schema.perfumes)
@@ -50,7 +52,7 @@ export async function upsertPerfume({ perfume, inventory, website }: UpsertPerfu
 		})
 		.returning({ id: schema.perfumes.id });
 	if (!upserted?.id) {
-		console.error('Upsert failed for perfume:', perfume);
+		log.error({ perfume }, 'Upsert failed for perfume');
 		return;
 	}
 	const perfumeId = upserted.id;
@@ -84,7 +86,7 @@ export async function upsertPerfume({ perfume, inventory, website }: UpsertPerfu
 }
 
 export async function upsertUprocessedPerfume(unprocessedPerfume: schema.NewUnprocessedPerfume) {
-	console.log('Perfume was not extracted successfully', unprocessedPerfume.perfume_url);
+	log.warn({ url: unprocessedPerfume.perfume_url }, 'Perfume was not extracted successfully');
 	return await db
 		.insert(schema.unprocessed_perfumes)
 		.values(unprocessedPerfume)
