@@ -5,7 +5,8 @@
 	"scripts": {
 		"dev": "vite dev",
 		"dev:worker": "vite-node --options.transformMode.ssr='/.*/' src/worker/index.ts",
-		"build": "vite build",
+		"build": "vite build && vite build --config vite.worker.config.js",
+		"build:worker": "vite build --config vite.worker.config.js",
 		"preview": "vite preview",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./jsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./jsconfig.json --watch",
@@ -39,14 +40,10 @@
 		"eslint-plugin-svelte": "^2.46.1",
 		"globals": "^15.15.0",
 		"hono": "^4.8.7",
-		"ioredis": "^5.6.1",
 		"lucide-svelte": "^0.460.1",
-		"playwright": "^1.60.0",
-		"playwright-extra": "^4.3.6",
 		"prettier": "^3.6.2",
 		"prettier-plugin-svelte": "^3.4.0",
 		"prettier-plugin-tailwindcss": "^0.6.14",
-		"puppeteer-extra-plugin-stealth": "^2.11.2",
 		"svelte": "^5.36.5",
 		"svelte-check": "^4.2.2",
 		"sveltekit-sse": "^0.14.1",
@@ -69,8 +66,12 @@
 		"bullmq": "^5.56.7",
 		"cheerio": "^1.1.0",
 		"drizzle-orm": "^0.40.1",
+		"ioredis": "^5.6.1",
 		"pino": "^10.3.1",
-		"pino-pretty": "^13.1.3"
+		"pino-pretty": "^13.1.3",
+		"playwright": "^1.60.0",
+		"playwright-extra": "^4.3.6",
+		"puppeteer-extra-plugin-stealth": "^2.11.2"
 	},
 	"pnpm": {
 		"onlyBuiltDependencies": [

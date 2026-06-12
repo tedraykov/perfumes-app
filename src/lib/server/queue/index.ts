@@ -1,11 +1,11 @@
-import { REDIS_URL } from '$env/static/private';
+import { env } from '$env/dynamic/private';
 import type { Job } from 'bullmq';
 import { Queue } from 'bullmq';
 import IORedis from 'ioredis';
 
 const QUEUE_NAME = 'perfumes';
 
-export const connection = new IORedis(REDIS_URL);
+export const connection = new IORedis(env.REDIS_URL!);
 
 export const queue = new Queue(QUEUE_NAME, {
 	connection

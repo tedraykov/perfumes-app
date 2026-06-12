@@ -1,0 +1,13 @@
+node_modules
+.svelte-kit
+build
+.git
+.github
+logs
+*.db
+*.db-journal
+*.db-wal
+.env
+.env.*
+test.html
+*.log

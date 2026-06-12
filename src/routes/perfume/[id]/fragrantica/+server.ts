@@ -24,9 +24,7 @@ export const POST: RequestHandler = async ({ params }) => {
 
 	if (!url) {
 		const client = new FragranticaClient();
-		const nameContainsHouse = perfume.name.toLowerCase().includes(perfume.house.toLowerCase());
-		const query = nameContainsHouse ? perfume.name : `${perfume.name} ${perfume.house}`;
-		const result = await client.searchFragrance(query);
+		const result = await client.searchFragrance(perfume.name, perfume.house);
 		if (!result) {
 			log.warn({ id, name: perfume.name }, 'Could not find perfume on Fragrantica');
 			return json({ error: 'Could not find on Fragrantica' }, { status: 422 });

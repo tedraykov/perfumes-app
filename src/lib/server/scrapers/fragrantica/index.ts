@@ -27,7 +27,7 @@ export async function linkPerfumes() {
 
   for (const perfume of perfumes) {
     const client = new FragranticaClient();
-    const data = await client.searchFragrance(`${perfume.name} ${perfume.house}`);
+    const data = await client.searchFragrance(perfume.name, perfume.house);
 
     if (!data) {
       log.warn({ perfume }, 'No data found for perfume');
