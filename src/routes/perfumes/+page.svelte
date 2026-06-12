@@ -1,54 +1,83 @@
 <script lang="ts">
 	import type { PageProps } from './$types';
 	import { goto } from '$app/navigation';
+	import { genderLabel } from '$lib';
 	import Pagination from './pagination.svelte';
 
 	let { data }: PageProps = $props();
 
 	let selectedHouses = $derived(data.selectedHouses);
 	let selectedGender = $derived(data.selectedGender);
+	let sort = $derived(data.sort ?? 'name');
 	let query = $state(data.query);
+	let houseQuery = $state('');
 	let filterOpen = $state(false);
 	let timeout: ReturnType<typeof setTimeout>;
 
-	function handleSearch() {
-		clearTimeout(timeout);
-		timeout = setTimeout(applyFilters, 300);
+	const SORT_LABELS: Record<string, string> = {
+		name: 'Име (А–Я)',
+		'price-asc': 'Цена (ниска → висока)',
+		'price-desc': 'Цена (висока → ниска)'
+	};
+
+	function buildParams(over: {
+		query?: string;
+		houses?: string[];
+		genders?: string[];
+		sort?: string;
+	} = {}) {
+		const params = new URLSearchParams();
+		const q = over.query ?? query;
+		const houses = over.houses ?? selectedHouses;
+		const genders = over.genders ?? selectedGender;
+		const s = over.sort ?? sort;
+		if (q) params.set('query', q);
+		if (houses?.length) params.set('houses', houses.join(','));
+		if (genders?.length) params.set('gender', genders.join(','));
+		if (s && s !== 'name') params.set('sort', s);
+		return params;
 	}
 
-	function applyFilters() {
-		const params = new URLSearchParams();
-		if (query) params.set('query', query);
-		if (selectedHouses?.length) params.set('houses', selectedHouses.join(','));
-		if (selectedGender?.length) params.set('gender', selectedGender.join(','));
-		goto(`?${params.toString()}`, { keepFocus: true, invalidateAll: true });
+	function navigate(over: Parameters<typeof buildParams>[0] = {}) {
+		goto(`?${buildParams(over).toString()}`, {
+			keepFocus: true,
+			noScroll: true,
+			invalidateAll: true
+		});
+	}
+
+	function handleSearch() {
+		clearTimeout(timeout);
+		timeout = setTimeout(() => navigate(), 300);
+	}
+
+	function clearSearch() {
+		query = '';
+		navigate();
 	}
 
 	function toggleHouse(house: string) {
 		const next = selectedHouses.includes(house)
 			? selectedHouses.filter((h) => h !== house)
 			: [...selectedHouses, house];
-		const params = new URLSearchParams();
-		if (query) params.set('query', query);
-		if (next.length) params.set('houses', next.join(','));
-		if (selectedGender?.length) params.set('gender', selectedGender.join(','));
-		goto(`?${params.toString()}`, { invalidateAll: true });
+		navigate({ houses: next });
 	}
 
 	function toggleGender(gender: string) {
 		const next = selectedGender.includes(gender)
 			? selectedGender.filter((g) => g !== gender)
 			: [...selectedGender, gender];
-		const params = new URLSearchParams();
-		if (query) params.set('query', query);
-		if (selectedHouses?.length) params.set('houses', selectedHouses.join(','));
-		if (next.length) params.set('gender', next.join(','));
-		goto(`?${params.toString()}`, { invalidateAll: true });
+		navigate({ genders: next });
+	}
+
+	function setSort(value: string) {
+		navigate({ sort: value });
 	}
 
 	function clearAll() {
 		query = '';
-		goto('/perfumes', { invalidateAll: true });
+		houseQuery = '';
+		goto('/perfumes', { invalidateAll: true, noScroll: true });
 	}
 
 	function bestPrice(perfume: (typeof data.perfumes)[0]) {
@@ -56,11 +85,28 @@
 		return Math.min(...perfume.inventory.map((i) => i.price));
 	}
 
+	function offerCount(perfume: (typeof data.perfumes)[0]) {
+		return perfume.inventory?.length ?? 0;
+	}
+
 	const genders = ['women', 'men', 'unisex'];
 	const hasFilters = $derived(
 		(selectedHouses?.length ?? 0) > 0 || (selectedGender?.length ?? 0) > 0 || !!query
 	);
+	const visibleHouses = $derived(
+		(data.houses ?? []).filter((h) => h.toLowerCase().includes(houseQuery.trim().toLowerCase()))
+	);
+	const formatPrice = (value: number) =>
+		new Intl.NumberFormat('bg-BG', { style: 'currency', currency: 'EUR' }).format(value);
 </script>
+
+<svelte:head>
+	<title>Каталог · парфюмни ентусиасти</title>
+	<meta
+		name="description"
+		content="Търси сред всички парфюми и сравни цените от български търговци на едно място."
+	/>
+</svelte:head>
 
 <div class="page">
 	<!-- Hero -->
@@ -95,8 +141,18 @@
 				<circle cx="6" cy="4" r="1.6" fill="currentColor" /><circle cx="11" cy="8" r="1.6" fill="currentColor" /><circle cx="5" cy="12" r="1.6" fill="currentColor" />
 			</svg>
 			ФИЛТРИ
+			{#if hasFilters}
+				<span class="filter-count">{(selectedHouses?.length ?? 0) + (selectedGender?.length ?? 0) + (query ? 1 : 0)}</span>
+			{/if}
 		</button>
-		<span class="count-label">{String(data.total).padStart(3, '0')} ПАРФЮМА</span>
+		<label class="sort-control mobile-sort">
+			<span class="sort-label">ПОДРЕДИ</span>
+			<select class="sort-select" value={sort} onchange={(e) => setSort(e.currentTarget.value)}>
+				{#each Object.entries(SORT_LABELS) as [value, label]}
+					<option {value}>{label}</option>
+				{/each}
+			</select>
+		</label>
 	</div>
 
 	<!-- Main grid area -->
@@ -105,19 +161,32 @@
 		<aside class="sidebar">
 			<div class="search-group">
 				<div class="filter-group-head">ТЪРСЕНЕ</div>
-				<input
-					class="search-input"
-					type="text"
-					placeholder="Търси парфюм..."
-					bind:value={query}
-					oninput={handleSearch}
-				/>
+				<div class="search-wrap">
+					<input
+						class="search-input"
+						type="search"
+						placeholder="Търси парфюм..."
+						bind:value={query}
+						oninput={handleSearch}
+					/>
+					{#if query}
+						<button class="search-clear" onclick={clearSearch} aria-label="Изчисти търсенето">×</button>
+					{/if}
+				</div>
 			</div>
 
 			<div class="filter-group">
 				<div class="filter-group-head">МАРКА</div>
+				{#if (data.houses?.length ?? 0) > 8}
+					<input
+						class="search-input house-search"
+						type="search"
+						placeholder="Намери марка..."
+						bind:value={houseQuery}
+					/>
+				{/if}
 				<div class="radio-list">
-					{#each data.houses ?? [] as house}
+					{#each visibleHouses as house}
 						<button
 							class="radio-btn"
 							class:active={selectedHouses.includes(house)}
@@ -127,6 +196,9 @@
 							<span class="radio-label">{house}</span>
 						</button>
 					{/each}
+					{#if !visibleHouses.length}
+						<span class="no-houses">Няма съвпадения</span>
+					{/if}
 				</div>
 			</div>
 
@@ -140,7 +212,7 @@
 							onclick={() => toggleGender(gender)}
 						>
 							<span class="radio-indicator" class:checked={selectedGender.includes(gender)}></span>
-							<span class="radio-label">{gender}</span>
+							<span class="radio-label">{genderLabel(gender)}</span>
 						</button>
 					{/each}
 				</div>
@@ -154,26 +226,58 @@
 		<!-- Product grid -->
 		<div class="grid-area">
 			<div class="grid-header">
-				<span class="label">
-					{String(data.total).padStart(3, '0')} ПАРФЮМА
-					{#if selectedHouses?.length}· {selectedHouses.join(', ').toUpperCase()}{/if}
-					{#if selectedGender?.length}· {selectedGender.join(', ').toUpperCase()}{/if}
-				</span>
+				<span class="label">{String(data.total).padStart(3, '0')} ПАРФЮМА</span>
+				<label class="sort-control">
+					<span class="sort-label">ПОДРЕДИ</span>
+					<select class="sort-select" value={sort} onchange={(e) => setSort(e.currentTarget.value)}>
+						{#each Object.entries(SORT_LABELS) as [value, label]}
+							<option {value}>{label}</option>
+						{/each}
+					</select>
+				</label>
 			</div>
+
+			{#if hasFilters}
+				<div class="applied-filters">
+					{#if query}
+						<button class="chip" onclick={clearSearch}>
+							„{query}“ <span class="chip-x">×</span>
+						</button>
+					{/if}
+					{#each selectedHouses as house}
+						<button class="chip" onclick={() => toggleHouse(house)}>
+							{house} <span class="chip-x">×</span>
+						</button>
+					{/each}
+					{#each selectedGender as gender}
+						<button class="chip" onclick={() => toggleGender(gender)}>
+							{genderLabel(gender)} <span class="chip-x">×</span>
+						</button>
+					{/each}
+					<button class="chip chip-clear" onclick={clearAll}>ИЗЧИСТИ ВСИЧКИ</button>
+				</div>
+			{/if}
 
 			<div class="product-grid">
 				{#each data.perfumes ?? [] as perfume (perfume.id)}
 					{@const price = bestPrice(perfume)}
+					{@const offers = offerCount(perfume)}
 					<a href="/perfume/{perfume.id}" class="product-card">
 						<div class="card-image-wrap">
 							{#if perfume.image_url}
-								<img src={perfume.image_url} alt={perfume.name} class="card-image" />
+								<img
+									src={perfume.image_url}
+									alt="{perfume.house} {perfume.name}"
+									class="card-image"
+									loading="lazy"
+									decoding="async"
+								/>
 							{:else}
 								<div class="card-image-placeholder">
 									<span class="placeholder-initial">{perfume.name[0]}</span>
 								</div>
 							{/if}
-							<span class="card-gender">{perfume.gender}</span>
+							<span class="card-gender">{genderLabel(perfume.gender)}</span>
 							<span class="card-open">ОТВОРИ ↗</span>
 						</div>
 						<div class="card-info">
@@ -184,8 +288,15 @@
 							<span class="card-name">{perfume.name}</span>
 							{#if price !== null}
 								<div class="card-price-row">
-									<span class="card-price-from">ОТ </span>
-									<span class="card-price">{new Intl.NumberFormat('bg-BG', { style: 'currency', currency: 'EUR' }).format(price)}</span>
+									<span class="card-price-from">ОТ&nbsp;</span>
+									<span class="card-price">{formatPrice(price)}</span>
+									{#if offers > 1}
+										<span class="card-offers">{offers} ОФЕРТИ</span>
+									{/if}
+								</div>
+							{:else}
+								<div class="card-price-row">
+									<span class="card-price-from">НЯМА НАЛИЧНОСТ</span>
 								</div>
 							{/if}
 						</div>
@@ -195,7 +306,10 @@
 				{#if !data.perfumes?.length}
 					<div class="empty-state">
 						<span class="empty-title">Нищо тук, тихо.</span>
-						<span class="label">ОПИТАЙТЕ С ДРУГ ФИЛТЪР</span>
+						<span class="label">НЕ НАМЕРИХМЕ ПАРФЮМИ С ТЕЗИ ФИЛТРИ</span>
+						{#if hasFilters}
+							<button class="empty-reset" onclick={clearAll}>ИЗЧИСТИ ФИЛТРИТЕ</button>
+						{/if}
 					</div>
 				{/if}
 			</div>
@@ -212,25 +326,38 @@
 	<div class="filter-drawer">
 		<div class="drawer-top">
 			<span class="label" style="font-size:11.5px;letter-spacing:0.18em">ФИЛТРИ</span>
-			<button class="close-btn" onclick={() => (filterOpen = false)}>×</button>
+			<button class="close-btn" onclick={() => (filterOpen = false)} aria-label="Затвори">×</button>
 		</div>
 
 		<div class="search-group">
 			<div class="filter-group-head">ТЪРСЕНЕ</div>
-			<input
-				class="search-input"
-				type="text"
-				placeholder="Търси парфюм..."
-				bind:value={query}
-				oninput={handleSearch}
-			/>
+			<div class="search-wrap">
+				<input
+					class="search-input"
+					type="search"
+					placeholder="Търси парфюм..."
+					bind:value={query}
+					oninput={handleSearch}
+				/>
+				{#if query}
+					<button class="search-clear" onclick={clearSearch} aria-label="Изчисти търсенето">×</button>
+				{/if}
+			</div>
 		</div>
 
 		<div class="filter-group">
 			<div class="filter-group-head">МАРКА</div>
+			{#if (data.houses?.length ?? 0) > 8}
+				<input
+					class="search-input house-search"
+					type="search"
+					placeholder="Намери марка..."
+					bind:value={houseQuery}
+				/>
+			{/if}
 			<div class="radio-list">
-				{#each data.houses ?? [] as house}
-					<button class="radio-btn" class:active={selectedHouses.includes(house)} onclick={() => { toggleHouse(house); }}>
+				{#each visibleHouses as house}
+					<button class="radio-btn" class:active={selectedHouses.includes(house)} onclick={() => toggleHouse(house)}>
 						<span class="radio-indicator" class:checked={selectedHouses.includes(house)}></span>
 						<span class="radio-label">{house}</span>
 					</button>
@@ -242,9 +369,9 @@
 			<div class="filter-group-head">ПОЛ</div>
 			<div class="radio-list">
 				{#each genders as gender}
-					<button class="radio-btn" class:active={selectedGender.includes(gender)} onclick={() => { toggleGender(gender); }}>
+					<button class="radio-btn" class:active={selectedGender.includes(gender)} onclick={() => toggleGender(gender)}>
 						<span class="radio-indicator" class:checked={selectedGender.includes(gender)}></span>
-						<span class="radio-label">{gender}</span>
+						<span class="radio-label">{genderLabel(gender)}</span>
 					</button>
 				{/each}
 			</div>
@@ -341,11 +468,39 @@
 		text-transform: uppercase;
 	}
 
+	/* Sort control */
+	.sort-control {
+		display: inline-flex;
+		align-items: center;
+		gap: 10px;
+		cursor: pointer;
+	}
+
+	.sort-label {
+		font-family: 'JetBrains Mono', monospace;
+		font-size: 10px;
+		letter-spacing: 0.16em;
+		color: var(--mute);
+	}
+
+	.sort-select {
+		font-family: 'Manrope', sans-serif;
+		font-size: 13px;
+		color: var(--ink);
+		background: transparent;
+		border: 0;
+		border-bottom: 1px solid var(--ink);
+		padding: 4px 2px;
+		cursor: pointer;
+		outline-offset: 4px;
+	}
+
 	/* Mobile toolbar */
 	.mobile-toolbar {
 		display: none;
 		justify-content: space-between;
 		align-items: center;
+		gap: 12px;
 		padding: 14px 20px;
 		border-bottom: 1px solid var(--line);
 		position: sticky;
@@ -366,13 +521,69 @@
 		font-size: 11px;
 		letter-spacing: 0.14em;
 		color: var(--ink);
+		flex-shrink: 0;
 	}
 
-	.count-label {
+	.filter-count {
+		background: var(--ink);
+		color: var(--cream);
+		font-size: 9px;
+		padding: 1px 6px;
+		line-height: 1.5;
+	}
+
+	.mobile-sort {
+		min-width: 0;
+	}
+
+	.mobile-sort .sort-select {
+		max-width: 160px;
+		text-overflow: ellipsis;
+	}
+
+	/* Applied filter chips */
+	.applied-filters {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px;
+		margin-bottom: 24px;
+	}
+
+	.chip {
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		padding: 7px 12px;
+		border: 1px solid var(--ink);
+		background: transparent;
+		color: var(--ink);
 		font-family: 'JetBrains Mono', monospace;
 		font-size: 10.5px;
-		letter-spacing: 0.14em;
+		letter-spacing: 0.1em;
+		cursor: pointer;
+		transition: background 150ms ease, color 150ms ease;
+	}
+
+	.chip:hover {
+		background: var(--ink);
+		color: var(--cream);
+	}
+
+	.chip-x {
+		font-size: 13px;
+		line-height: 1;
+	}
+
+	.chip-clear {
+		border-color: transparent;
 		color: var(--mute);
+		text-decoration: underline;
+		text-underline-offset: 4px;
+	}
+
+	.chip-clear:hover {
+		background: transparent;
+		color: var(--ink);
 	}
 
 	/* Main section */
@@ -397,9 +608,13 @@
 		margin-bottom: 28px;
 	}
 
+	.search-wrap {
+		position: relative;
+		margin-top: 10px;
+	}
+
 	.search-input {
 		width: 100%;
-		margin-top: 10px;
 		padding: 10px 12px;
 		border: 1px solid var(--line);
 		background: var(--paper);
@@ -408,10 +623,46 @@
 		font-size: 14px;
 		outline: none;
 		transition: border-color 0.15s;
+		appearance: none;
+	}
+
+	.search-input::-webkit-search-cancel-button {
+		display: none;
 	}
 
 	.search-input:focus {
 		border-color: var(--ink);
+	}
+
+	.search-clear {
+		position: absolute;
+		right: 6px;
+		top: 50%;
+		transform: translateY(-50%);
+		background: transparent;
+		border: 0;
+		font-size: 18px;
+		line-height: 1;
+		color: var(--mute);
+		cursor: pointer;
+		padding: 4px 6px;
+	}
+
+	.search-clear:hover {
+		color: var(--ink);
+	}
+
+	.house-search {
+		margin-bottom: 14px;
+		padding: 8px 10px;
+		font-size: 13px;
+	}
+
+	.no-houses {
+		font-family: 'Manrope', sans-serif;
+		font-size: 13px;
+		color: var(--mute);
+		font-style: italic;
 	}
 
 	.filter-group {
@@ -494,7 +745,7 @@
 		display: flex;
 		justify-content: space-between;
 		align-items: baseline;
-		margin-bottom: 32px;
+		margin-bottom: 24px;
 	}
 
 	.product-grid {
@@ -539,6 +790,11 @@
 		height: 84%;
 		object-fit: contain;
 		display: block;
+		transition: transform 350ms ease;
+	}
+
+	.product-card:hover .card-image {
+		transform: scale(1.03);
 	}
 
 	.card-image-placeholder {
@@ -631,6 +887,7 @@
 		margin-top: 6px;
 		display: flex;
 		align-items: baseline;
+		gap: 2px;
 	}
 
 	.card-price-from {
@@ -644,6 +901,14 @@
 		font-family: 'Cormorant Garamond', serif;
 		font-size: 22px;
 		font-variant-numeric: tabular-nums;
+	}
+
+	.card-offers {
+		font-family: 'JetBrains Mono', monospace;
+		font-size: 9px;
+		letter-spacing: 0.12em;
+		color: var(--amber);
+		margin-left: auto;
 	}
 
 	/* Empty state */
@@ -664,6 +929,23 @@
 		font-size: 40px;
 		font-style: italic;
 		color: var(--mute);
+	}
+
+	.empty-reset {
+		margin-top: 20px;
+		padding: 14px 28px;
+		background: var(--ink);
+		color: var(--cream);
+		border: 0;
+		cursor: pointer;
+		font-family: 'JetBrains Mono', monospace;
+		font-size: 11px;
+		letter-spacing: 0.18em;
+		transition: background 150ms ease;
+	}
+
+	.empty-reset:hover {
+		background: oklch(0.25 0.02 50);
 	}
 
 	/* Mobile drawer */
@@ -764,12 +1046,40 @@
 			display: none;
 		}
 
+		.applied-filters {
+			margin-bottom: 16px;
+		}
+
 		.product-grid {
-			grid-template-columns: 1fr;
+			grid-template-columns: repeat(2, 1fr);
+		}
+
+		.card-info {
+			padding: 12px 12px 14px;
+			gap: 4px;
 		}
 
 		.card-name {
-			font-size: 22px;
+			font-size: 19px;
+		}
+
+		.card-price {
+			font-size: 18px;
+		}
+
+		.card-house,
+		.card-conc {
+			font-size: 9px;
+		}
+
+		.card-gender {
+			top: 10px;
+			right: 10px;
+			font-size: 9px;
+		}
+
+		.card-open {
+			display: none;
 		}
 	}
 </style>

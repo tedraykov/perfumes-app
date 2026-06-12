@@ -16,6 +16,14 @@
 		return new Intl.NumberFormat('bg-BG', { style: 'currency', currency: 'EUR' }).format(price);
 	}
 
+	function perMl(price: number | null | undefined, volume: number | null | undefined) {
+		if (price == null || !volume) return null;
+		return `${new Intl.NumberFormat('bg-BG', {
+			minimumFractionDigits: 2,
+			maximumFractionDigits: 2
+		}).format(price / volume)} €/МЛ`;
+	}
+
 	function sellerInitials(name: string) {
 		return name
 			.split(/\s+/)
@@ -40,7 +48,8 @@
 
 		{#each sorted as item, i}
 			{@const isBest = item.price === minPrice}
-			<div class="table-row">
+			{@const unitPrice = perMl(item.price, item.volume)}
+			<div class="table-row" class:best={isBest}>
 				<span class="td-idx">{String(i + 1).padStart(2, '0')}</span>
 
 				<div class="td-seller">
@@ -70,13 +79,13 @@
 
 				<div class="td-price">
 					<span class="price">{formatPrice(item.price)}</span>
-					<span class="price-sub">С ДДС</span>
+					<span class="price-sub">{unitPrice ? `${unitPrice} · ` : ''}С ДДС</span>
 				</div>
 
 				<div class="td-action">
 					{#if item.url}
 						<a href={item.url} target="_blank" rel="noopener noreferrer" class="visit-btn">
-							ВИШИ МАГАЗИНА ↗
+							ВИЖ МАГАЗИНА ↗
 						</a>
 					{/if}
 				</div>
@@ -135,6 +144,11 @@
 			rgba(26, 22, 18, 0.025) 0 1px,
 			transparent 1px 6px
 		);
+	}
+
+	.table-row.best {
+		box-shadow: inset 3px 0 0 var(--amber);
+		background: var(--paper);
 	}
 
 	.td-idx {
@@ -281,6 +295,10 @@
 			grid-template-columns: 1fr;
 			gap: 12px;
 			padding: 20px 0;
+		}
+
+		.table-row.best {
+			padding-left: 14px;
 		}
 
 		.td-idx {

@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { invalidateAll } from '$app/navigation';
 	import type { Perfume } from '$lib/server/db/schema';
+	import { genderLabel } from '$lib';
 	import FragranceInventory from './fragrance-inventory.svelte';
 	import FragranticaButton from './fragrantica-button.svelte';
 	import Notes from './notes.svelte';
@@ -52,20 +53,30 @@
 	const hasNotes = $derived(hasPyramid || notes.other.length > 0);
 </script>
 
+<svelte:head>
+	<title>{perfume.name} — {perfume.house} · парфюмни ентусиасти</title>
+	<meta
+		name="description"
+		content="Сравни цените за {perfume.house} {perfume.name} ({perfume.concentration}) от български търговци."
+	/>
+</svelte:head>
+
 <div class="page">
 	<!-- Breadcrumb -->
-	<div class="breadcrumb">
+	<nav class="breadcrumb" aria-label="Навигационна пътека">
 		<div class="breadcrumb-content">
 			<span class="breadcrumb-inner">
 				<a href="/perfumes" class="bc-link">КАТАЛОГ</a>
 				<span class="bc-sep">  /  </span>
-				<span class="bc-mute">{perfume.house?.toUpperCase()}</span>
+				<a href="/perfumes?houses={encodeURIComponent(perfume.house ?? '')}" class="bc-link"
+					>{perfume.house?.toUpperCase()}</a
+				>
 				<span class="bc-sep">  /  </span>
 				<span class="bc-current">{perfume.name?.toUpperCase()}</span>
 			</span>
-			<span class="bc-meta">{perfume.gender?.toUpperCase()} · {perfume.concentration?.toUpperCase()}</span>
+			<span class="bc-meta">{genderLabel(perfume.gender).toUpperCase()} · {perfume.concentration?.toUpperCase()}</span>
 		</div>
-	</div>
+	</nav>
 
 	<!-- Hero: image | meta -->
 	<section class="hero">
@@ -74,7 +85,12 @@
 		<div class="hero-image-col">
 			<div class="image-paper">
 				{#if perfume.image_url}
-					<img src={perfume.image_url} alt={perfume.name} class="hero-image" />
+					<img
+						src={perfume.image_url}
+						alt="{perfume.house} {perfume.name}"
+						class="hero-image"
+						fetchpriority="high"
+					/>
 				{:else}
 					<div class="image-placeholder">
 						<span class="placeholder-letter">{perfume.name?.[0]}</span>
@@ -89,7 +105,7 @@
 				<span class="mono-label">{perfume.house?.toUpperCase()}</span>
 				<h1 class="hero-name">{perfume.name}</h1>
 				<span class="mono-label" style="text-transform:uppercase">
-					{perfume.concentration} · {perfume.gender}
+					{perfume.concentration} · {genderLabel(perfume.gender)}
 				</span>
 			</div>
 
@@ -199,10 +215,6 @@
 	}
 
 	.bc-sep {
-		color: var(--mute);
-	}
-
-	.bc-mute {
 		color: var(--mute);
 	}
 

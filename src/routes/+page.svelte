@@ -1,6 +1,14 @@
 <script>
-	import { goto } from '$app/navigation';
+	let { data } = $props();
 </script>
+
+<svelte:head>
+	<title>парфюмни ентусиасти — сравни цените на парфюми</title>
+	<meta
+		name="description"
+		content="Сравнете цените на парфюми от водещи български търговци. Независими и нишови аромати, ясни цени."
+	/>
+</svelte:head>
 
 <div class="home">
 	<div class="home-content">
@@ -13,6 +21,23 @@
 			Сравнете цените от водещи търговци на парфюми в България. Независими и нишови аромати, ясни цени.
 		</p>
 		<a href="/perfumes" class="cta-btn">КЪМ КАТАЛОГА →</a>
+
+		{#if data?.total}
+			<div class="home-stats">
+				<div class="stat">
+					<span class="stat-value">{data.total}</span>
+					<span class="stat-label">ПАРФЮМИ</span>
+				</div>
+				<div class="stat">
+					<span class="stat-value">{data.housesCount}</span>
+					<span class="stat-label">МАРКИ</span>
+				</div>
+				<div class="stat">
+					<span class="stat-value">{data.stores}</span>
+					<span class="stat-label">МАГАЗИНИ</span>
+				</div>
+			</div>
+		{/if}
 	</div>
 </div>
 
@@ -83,14 +108,57 @@
 		background: oklch(0.25 0.02 50);
 	}
 
+	.home-stats {
+		display: grid;
+		grid-template-columns: repeat(3, minmax(120px, 1fr));
+		gap: 14px;
+		margin-top: 56px;
+		width: 100%;
+		max-width: 480px;
+	}
+
+	.stat {
+		border-top: 1px solid var(--ink);
+		padding-top: 12px;
+		display: flex;
+		flex-direction: column;
+	}
+
+	.stat-value {
+		font-family: 'Cormorant Garamond', serif;
+		font-size: 40px;
+		font-weight: 600;
+		line-height: 1;
+		font-variant-numeric: tabular-nums;
+	}
+
+	.stat-label {
+		margin-top: 8px;
+		font-family: 'JetBrains Mono', monospace;
+		font-size: 10.5px;
+		letter-spacing: 0.16em;
+		color: var(--mute);
+	}
+
 	@media (max-width: 768px) {
 		.home {
 			padding: 60px 20px;
 			min-height: calc(100vh - 58px);
+			align-items: flex-start;
 		}
 
 		.home-title {
 			font-size: 52px;
+		}
+
+		.home-stats {
+			grid-template-columns: repeat(3, 1fr);
+			gap: 10px;
+			margin-top: 44px;
+		}
+
+		.stat-value {
+			font-size: 30px;
 		}
 	}
 </style>

@@ -1,4 +1,7 @@
 # syntax=docker/dockerfile:1
+# check=skip=SecretsUsedInArgOrEnv
+# (The builder-stage ENV values below are throwaway build-time placeholders, not
+# real secrets — the stage is discarded — so the secrets-in-ENV check is skipped.)
 
 # ---- Builder: compiles the SvelteKit app + worker bundle to ./build ----
 # Alpine is fine here: only the pure-JS `build/` output is copied forward, so

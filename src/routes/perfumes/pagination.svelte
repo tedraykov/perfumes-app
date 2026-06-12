@@ -21,8 +21,13 @@
 </script>
 
 {#if totalPages > 1}
-	<nav class="pagination">
-		<button class="page-btn" disabled={currentPage <= 1} onclick={() => goTo(currentPage - 1)}>
+	<nav class="pagination" aria-label="Страници">
+		<button
+			class="page-btn"
+			disabled={currentPage <= 1}
+			onclick={() => goTo(currentPage - 1)}
+			aria-label="Предишна страница"
+		>
 			← НАЗАД
 		</button>
 
@@ -34,11 +39,18 @@
 			<button
 				class="page-btn"
 				class:active={p === currentPage}
+				aria-current={p === currentPage ? 'page' : undefined}
+				aria-label="Страница {p}"
 				onclick={() => goTo(p)}
 			>{p}</button>
 		{/each}
 
-		<button class="page-btn" disabled={currentPage >= totalPages} onclick={() => goTo(currentPage + 1)}>
+		<button
+			class="page-btn"
+			disabled={currentPage >= totalPages}
+			onclick={() => goTo(currentPage + 1)}
+			aria-label="Следваща страница"
+		>
 			НАПРЕД →
 		</button>
 	</nav>
