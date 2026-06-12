@@ -20,9 +20,6 @@
 		"db:studio": "drizzle-kit studio"
 	},
 	"devDependencies": {
-		"@bull-board/api": "^6.12.0",
-		"@bull-board/hono": "^6.12.0",
-		"@hono/node-server": "^1.17.1",
 		"@lucide/svelte": "^0.482.0",
 		"@sveltejs/adapter-auto": "^6.0.0",
 		"@sveltejs/adapter-node": "^5.2.13",
@@ -39,7 +36,6 @@
 		"eslint-config-prettier": "^9.1.0",
 		"eslint-plugin-svelte": "^2.46.1",
 		"globals": "^15.15.0",
-		"hono": "^4.8.7",
 		"lucide-svelte": "^0.460.1",
 		"prettier": "^3.6.2",
 		"prettier-plugin-svelte": "^3.4.0",
@@ -58,6 +54,9 @@
 	},
 	"dependencies": {
 		"@anthropic-ai/sdk": "^0.57.0",
+		"@bull-board/api": "^6.12.0",
+		"@bull-board/hono": "^6.12.0",
+		"@hono/node-server": "^1.17.1",
 		"@libsql/client": "^0.14.0",
 		"@sveltejs/adapter-vercel": "^5.8.0",
 		"@tailwindcss/container-queries": "^0.1.1",
@@ -66,6 +65,7 @@
 		"bullmq": "^5.56.7",
 		"cheerio": "^1.1.0",
 		"drizzle-orm": "^0.40.1",
+		"hono": "^4.8.7",
 		"ioredis": "^5.6.1",
 		"pino": "^10.3.1",
 		"pino-pretty": "^13.1.3",
